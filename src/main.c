@@ -8,6 +8,13 @@
 #include <unistd.h>
 
 int main(int argc, char *argv[]) {
+  GError *error = NULL;
+  GDBusConnection *connection = g_bus_get_sync(G_BUS_TYPE_SYSTEM, NULL, &error);
+  if (!connection) {
+    g_printerr("Failed to connect to system bus: %s\n", error->message);
+    g_error_free(error);
+    return 1;
+  }
   gtk_init();
   GdkDisplay *display = gdk_display_get_default();
   GListModel *monitors = gdk_display_get_monitors(display);
@@ -41,7 +48,7 @@ int main(int argc, char *argv[]) {
     gtk_layer_set_margin(GTK_WINDOW(window), GTK_LAYER_SHELL_EDGE_TOP,
                          geometry.y);
     gtk_window_present(GTK_WINDOW(window));
-    bar(window);
+    bar(window, connection);
   }
   GMainLoop *loop = g_main_loop_new(NULL, FALSE);
   g_main_loop_run(loop);

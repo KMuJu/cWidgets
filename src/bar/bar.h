@@ -2,6 +2,6 @@
 
 #include <gtk/gtk.h>
 
-void bar(GtkWidget *window);
+void bar(GtkWidget *window, GDBusConnection *conneciton);
 
 #endif // !DEBUG
