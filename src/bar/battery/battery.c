@@ -12,24 +12,28 @@ char *dbus_path = "/org/freedesktop/UPower/devices/DisplayDevice";
 struct BatteryWidgets {
   GtkWidget *label;
   GtkWidget *image;
+  double energyFull;
 };
 
-static void battery_ui_refresh(gpointer data, int level) {
+static void battery_ui_refresh(gpointer data, int energy, gboolean charging) {
   struct BatteryWidgets *bw = data;
   GtkWidget *label = bw->label;
   GtkWidget *image = bw->image;
+  double energyFull = bw->energyFull;
 
-  int last_digit = level % 10;
-  int level_icon = (level / 10) * 10;
+  int percentage = (int)((energy * 100) / energyFull);
+  int last_digit = percentage % 10;
+  int level_icon = (percentage / 10) * 10;
   if (last_digit >= 5)
     level_icon += 10;
 
-  char icon_name[32];
-  snprintf(icon_name, sizeof(icon_name), "battery-level-%d-symbolic",
-           level_icon);
+  char *state = charging ? "-charging" : "";
+  char icon_name[36];
+  snprintf(icon_name, sizeof(icon_name), "battery-level-%d%s-symbolic",
+           level_icon, state);
 
   char percent_str[8];
-  snprintf(percent_str, sizeof(percent_str), "%d%%", level);
+  snprintf(percent_str, sizeof(percent_str), "%d%%", percentage);
 
   gtk_label_set_label(GTK_LABEL(label), percent_str);
   gtk_image_set_from_icon_name(GTK_IMAGE(image), icon_name);
@@ -47,17 +51,62 @@ static void on_proxy_properties_changed(GDBusProxy *proxy,
   GVariant *full = g_dbus_proxy_get_cached_property(proxy, "EnergyFull");
   double energyFull = g_variant_get_double(full);
 
+  // a bit ugly, but sets the energyFull member
+  ((struct BatteryWidgets *)user_data)->energyFull = energyFull;
+
+  GVariant *state_v = g_dbus_proxy_get_cached_property(proxy, "State");
+  const uint state = state_v ? g_variant_get_uint32(state_v) : 0;
+  const gboolean charging =
+      state == 1 /*Charging*/ || state == 4 /*Fully charged*/;
+
   g_variant_get(changed_properties, "a{sv}", &iter);
   while (g_variant_iter_next(iter, "{sv}", &key, &value)) {
     if (strcmp(key, "Energy") == 0) {
       energy = g_variant_get_double(value);
-      g_message("Energy: %f, EnergyPercentage: %d\n", energy,
-                (int)((energy * 100) / energyFull));
-      battery_ui_refresh(user_data, (int)((energy * 100) / energyFull));
+      battery_ui_refresh(user_data, energy, charging);
+
+      g_variant_unref(value);
+      break;
     }
-    g_variant_unref(value);
   }
   g_variant_iter_free(iter);
+}
+
+int initial_sync(GDBusProxy *proxy, struct BatteryWidgets *bw) {
+  // Get initial Percentage value
+  GVariant *state_v = g_dbus_proxy_get_cached_property(proxy, "State");
+  if (!state_v) {
+    g_printerr("Could not get state\n");
+    return 1;
+  }
+  const uint state = state_v ? g_variant_get_uint32(state_v) : 0;
+  const gboolean charging =
+      state == 1 /*Charging*/ || state == 4 /*Fully charged*/;
+
+  GVariant *full = g_dbus_proxy_get_cached_property(proxy, "EnergyFull");
+  if (!full) {
+    g_printerr("Could not get EnergyFull\n");
+    return 1;
+  }
+  double energyFull = g_variant_get_double(full);
+  bw->energyFull = energyFull;
+
+  GVariant *energy = g_dbus_proxy_get_cached_property(proxy, "Energy");
+  if (!energy) {
+    g_printerr("Could not get cached property\n");
+    return 1;
+  }
+
+  if (energy) {
+    int level = (int)(g_variant_get_double(energy) + 0.5);
+    battery_ui_refresh(bw, level, charging);
+    g_variant_unref(energy);
+  } else {
+    g_printerr("Failed to get initial battery percentage\n");
+    return 1;
+  }
+
+  return 0;
 }
 
 void start_battery_widget(GtkWidget *box, GDBusConnection *connection) {
@@ -85,24 +134,7 @@ void start_battery_widget(GtkWidget *box, GDBusConnection *connection) {
     return;
   }
 
-  GVariant *percentage = g_dbus_proxy_get_cached_property(proxy, "Percentage");
-  if (percentage)
-    g_variant_print(percentage, TRUE);
-
-  // Get initial Percentage value
-  GVariant *value = g_dbus_proxy_get_cached_property(proxy, "Percentage");
-  if (!value) {
-    g_printerr("Could not get cached property\n");
-    return;
-  }
-
-  if (value) {
-    int level = (int)(g_variant_get_double(value) + 0.5);
-    battery_ui_refresh(bw, level);
-    g_variant_unref(value);
-  } else {
-    g_printerr("Failed to get initial battery percentage\n");
-  }
+  initial_sync(proxy, bw);
 
   // Connect to PropertiesChanged via proxy
   g_signal_connect(proxy, "g-properties-changed",
