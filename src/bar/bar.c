@@ -27,13 +27,13 @@ void bar(GtkWidget *window, GDBusConnection *conneciton) {
   gtk_widget_set_halign(workspaces_box, GTK_ALIGN_CENTER);
   gtk_box_append(GTK_BOX(workspaces_box), gtk_label_new("Workspaces"));
 
-  GtkWidget *left_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+  GtkWidget *right_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
 
-  add_wifi_widget(left_box);
+  add_wifi_widget(right_box);
 
-  gtk_box_append(GTK_BOX(box), battery_box);
-  gtk_box_append(GTK_BOX(box), workspaces_box);
-  gtk_box_append(GTK_BOX(box), left_box);
+  gtk_center_box_set_start_widget(GTK_CENTER_BOX(box), battery_box);
+  gtk_center_box_set_center_widget(GTK_CENTER_BOX(box), workspaces_box);
+  gtk_center_box_set_end_widget(GTK_CENTER_BOX(box), right_box);
 
   gtk_window_set_child(GTK_WINDOW(window), box);
 }
