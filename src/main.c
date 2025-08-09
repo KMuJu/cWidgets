@@ -1,4 +1,6 @@
 #include "bar/bar.h"
+#include "gio/gio.h"
+#include "glib-object.h"
 #include "glib.h"
 #include "gtk/gtk.h"
 #include "gtk4-layer-shell/gtk4-layer-shell.h"
@@ -8,32 +10,12 @@
 
 typedef struct {
   GMainLoop *loop;
+  GDBusConnection *dbus_connection;
+  WpCore *core;
+  WpObjectManager *om;
   guint pending_plugins;
   gint exit_code;
 } MainContext;
-
-// Simple synchronous wait using GMainContext iteration
-static gboolean wait_for_core_connection(WpCore *core, guint timeout_ms) {
-  GMainContext *context = g_main_context_default();
-  guint64 start_time = g_get_monotonic_time();
-  guint64 timeout_us = timeout_ms * 1000;
-
-  while (!wp_core_is_connected(core)) {
-    // Check for timeout
-    if (g_get_monotonic_time() - start_time > timeout_us) {
-      g_warning("Timeout waiting for WpCore connection");
-      return FALSE;
-    }
-
-    // Process pending events
-    g_main_context_iteration(context, FALSE);
-
-    // Small delay to avoid busy waiting
-    g_usleep(1000); // 1ms
-  }
-
-  return TRUE;
-}
 
 static void on_plugin_loaded(WpCore *core, GAsyncResult *res,
                              MainContext *ctx) {
@@ -48,50 +30,16 @@ static void on_plugin_loaded(WpCore *core, GAsyncResult *res,
 
   g_message("Loaded plugin: %d\n", ctx->pending_plugins);
 
+  // If there are no more plugins to load
+  // install object manager to trigger run
   if (--ctx->pending_plugins == 0) {
     g_autoptr(WpPlugin) mixer_api = wp_plugin_find(core, "mixer-api");
     g_object_set(mixer_api, "scale", 1 /* cubic */, NULL);
-    wp_core_connect(core);
+    wp_core_install_object_manager(ctx->core, ctx->om);
   }
 }
 
-int main(int argc, char *argv[]) {
-  g_message("Starting cWidget\n");
-
-  GMainLoop *loop = g_main_loop_new(NULL, FALSE);
-  MainContext ctx = {0};
-  ctx.loop = loop;
-
-  // DBUS
-  GError *error = NULL;
-  GDBusConnection *connection = g_bus_get_sync(G_BUS_TYPE_SYSTEM, NULL, &error);
-  if (!connection) {
-    g_printerr("Failed to connect to system bus: %s\n", error->message);
-    g_error_free(error);
-    return 1;
-  }
-
-  // WIREPLUMBER
-  wp_init(WP_INIT_PIPEWIRE | WP_INIT_SPA_TYPES | WP_INIT_SET_PW_LOG);
-  WpCore *core = wp_core_new(g_main_context_default(), NULL, NULL);
-
-  ctx.pending_plugins++;
-  wp_core_load_component(core, "libwireplumber-module-mixer-api", "module",
-                         NULL, NULL, NULL,
-                         (GAsyncReadyCallback)on_plugin_loaded, &ctx);
-
-  g_message("Waiting for WpCore connection...");
-  if (!wait_for_core_connection(core, 5000)) { // 5 second timeout
-    g_printerr("Failed to connect to PipeWire within timeout\n");
-    return 1;
-  }
-  g_message("WpCore connected successfully!");
-
-  WpObjectManager *om = wp_object_manager_new();
-  wp_object_manager_add_interest(om, WP_TYPE_NODE,
-                                 WP_CONSTRAINT_TYPE_PW_PROPERTY, "media.class",
-                                 "=s", "Audio/Sink", NULL);
-
+static void run(MainContext *ctx) {
   gtk_init();
   GdkDisplay *display = gdk_display_get_default();
   GListModel *monitors = gdk_display_get_monitors(display);
@@ -125,8 +73,60 @@ int main(int argc, char *argv[]) {
     gtk_layer_set_margin(GTK_WINDOW(window), GTK_LAYER_SHELL_EDGE_TOP,
                          geometry.y);
     gtk_window_present(GTK_WINDOW(window));
-    bar(window, connection, core, om);
+    bar(window, ctx->dbus_connection, ctx->core, ctx->om);
   }
+}
+
+int main(int argc, char *argv[]) {
+  g_message("Starting cWidget\n");
+
+  GMainLoop *loop = g_main_loop_new(NULL, FALSE);
+  MainContext ctx = {0};
+  ctx.loop = loop;
+
+  // DBUS
+  GError *error = NULL;
+  GDBusConnection *connection = g_bus_get_sync(G_BUS_TYPE_SYSTEM, NULL, &error);
+  if (!connection) {
+    g_printerr("Failed to connect to system bus: %s\n", error->message);
+    g_error_free(error);
+    return 1;
+  }
+
+  ctx.dbus_connection = connection;
+
+  // WIREPLUMBER
+  wp_init(WP_INIT_PIPEWIRE | WP_INIT_SPA_TYPES | WP_INIT_SET_PW_LOG);
+  WpCore *core = wp_core_new(g_main_context_default(), NULL, NULL);
+  WpObjectManager *om = wp_object_manager_new();
+  wp_object_manager_add_interest(om, WP_TYPE_NODE,
+                                 WP_CONSTRAINT_TYPE_PW_PROPERTY, "media.class",
+                                 "=s", "Audio/Sink", NULL);
+
+  ctx.core = core;
+  ctx.om = om;
+
+  ctx.pending_plugins++;
+  wp_core_load_component(ctx.core, "libwireplumber-module-default-nodes-api",
+                         "module", NULL, NULL, NULL,
+                         (GAsyncReadyCallback)on_plugin_loaded, &ctx);
+
+  ctx.pending_plugins++;
+  wp_core_load_component(core, "libwireplumber-module-mixer-api", "module",
+                         NULL, NULL, NULL,
+                         (GAsyncReadyCallback)on_plugin_loaded, &ctx);
+
+  /* connect */
+  if (!wp_core_connect(core)) {
+    g_printerr("Could not connect to PipeWire\n");
+    return 1;
+  }
+
+  g_signal_connect_swapped(ctx.core, "disconnected",
+                           (GCallback)g_main_loop_quit, ctx.loop);
+  // Run after object manager is installed
+  g_signal_connect_swapped(om, "installed", (GCallback)run, &ctx);
+
   g_main_loop_run(loop);
 
   return ctx.exit_code;
