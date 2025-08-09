@@ -1,4 +1,5 @@
 #include "bar.h"
+#include "audio/audio.h"
 #include "battery/battery.h"
 #include "gio/gio.h"
 #include "gtk/gtkshortcut.h"
@@ -6,11 +7,12 @@
 #include <gtk/gtk.h>
 #include <gtk4-layer-shell/gtk4-layer-shell.h>
 
-void bar(GtkWidget *window, GDBusConnection *conneciton) {
+void bar(GtkWidget *window, GDBusConnection *conneciton, WpCore *core,
+         WpObjectManager *om) {
   // Connect to D-Bus
   gtk_layer_set_keyboard_mode(GTK_WINDOW(window),
                               GTK_LAYER_SHELL_KEYBOARD_MODE_ON_DEMAND);
-  GtkWidget *box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
+  GtkWidget *box = gtk_center_box_new();
   gtk_widget_set_hexpand(box, TRUE);
   int bar_margin = 5;
   int bar_margin_side = 8;
@@ -29,6 +31,7 @@ void bar(GtkWidget *window, GDBusConnection *conneciton) {
 
   GtkWidget *right_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
 
+  start_audio_widget(right_box, core, om);
   add_wifi_widget(right_box);
 
   gtk_center_box_set_start_widget(GTK_CENTER_BOX(box), battery_box);

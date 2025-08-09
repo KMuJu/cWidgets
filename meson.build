@@ -13,8 +13,16 @@ project(
 libnm = dependency('libnm')
 gtk = dependency('gtk4')
 gtk4layershell = dependency('gtk4-layer-shell-0')
+libpipewire = dependency('libpipewire-0.3')
+libwireplumber = dependency('wireplumber-0.5')
 
-deps = [libnm, gtk, gtk4layershell]
+deps = [
+  libnm,
+  gtk,
+  gtk4layershell,
+  libpipewire,
+  libwireplumber,
+]
 
 src = [
   'src/main.c',
@@ -22,6 +30,7 @@ src = [
   'src/bar/bar.c',
   'src/bar/wifi/wifi.c',
   'src/bar/battery/battery.c',
+  'src/bar/audio/audio.c',
   'src/util/util.c',
 ]
 
