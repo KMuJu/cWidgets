@@ -31,6 +31,7 @@ src = [
   'src/bar/wifi/wifi.c',
   'src/bar/battery/battery.c',
   'src/bar/audio/audio.c',
+  'src/bar/date_time/date_time.c',
   'src/util/util.c',
 ]
 

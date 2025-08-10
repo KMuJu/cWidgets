@@ -1,6 +1,7 @@
 #include "bar.h"
 #include "audio/audio.h"
 #include "battery/battery.h"
+#include "date_time/date_time.h"
 #include "gio/gio.h"
 #include "gtk/gtkshortcut.h"
 #include "wifi/wifi.h"
@@ -33,6 +34,7 @@ void bar(GtkWidget *window, GDBusConnection *conneciton, WpCore *core,
 
   start_audio_widget(right_box, core, om);
   add_wifi_widget(right_box);
+  start_date_time_widget(right_box);
 
   gtk_center_box_set_start_widget(GTK_CENTER_BOX(box), battery_box);
   gtk_center_box_set_center_widget(GTK_CENTER_BOX(box), workspaces_box);
