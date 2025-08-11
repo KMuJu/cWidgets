@@ -7,7 +7,6 @@
 static NMClient *global_client = NULL;
 static NMDeviceWifi *cached_wifi = NULL;
 static GMutex init_mutex;
-static gboolean initialized = FALSE;
 
 GQuark wifi_util_error_quark(void) {
   return g_quark_from_static_string("wifi-util-error-quark");

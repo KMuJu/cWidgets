@@ -15,6 +15,7 @@ gtk = dependency('gtk4')
 gtk4layershell = dependency('gtk4-layer-shell-0')
 libpipewire = dependency('libpipewire-0.3')
 libwireplumber = dependency('wireplumber-0.5')
+libcjson = dependency('libcjson')
 
 deps = [
   libnm,
@@ -22,6 +23,7 @@ deps = [
   gtk4layershell,
   libpipewire,
   libwireplumber,
+  libcjson,
 ]
 
 src = [
@@ -32,6 +34,8 @@ src = [
   'src/bar/battery/battery.c',
   'src/bar/audio/audio.c',
   'src/bar/date_time/date_time.c',
+  'src/bar/workspaces/workspaces.c',
+  'src/bar/workspaces/workspace_object.c',
   'src/util/util.c',
 ]
 

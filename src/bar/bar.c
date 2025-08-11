@@ -3,8 +3,9 @@
 #include "battery/battery.h"
 #include "date_time/date_time.h"
 #include "gio/gio.h"
-#include "gtk/gtkshortcut.h"
+#include "glib.h"
 #include "wifi/wifi.h"
+#include "workspaces/workspaces.h"
 #include <gtk/gtk.h>
 #include <gtk4-layer-shell/gtk4-layer-shell.h>
 
@@ -39,6 +40,8 @@ void bar(GtkWidget *window, GDBusConnection *conneciton, WpCore *core,
   gtk_center_box_set_start_widget(GTK_CENTER_BOX(box), battery_box);
   gtk_center_box_set_center_widget(GTK_CENTER_BOX(box), workspaces_box);
   gtk_center_box_set_end_widget(GTK_CENTER_BOX(box), right_box);
+
+  g_thread_new("workspace", listen_to_hyprland_socket, workspaces_box);
 
   gtk_window_set_child(GTK_WINDOW(window), box);
 }
