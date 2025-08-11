@@ -35,7 +35,6 @@ src = [
   'src/bar/audio/audio.c',
   'src/bar/date_time/date_time.c',
   'src/bar/workspaces/workspaces.c',
-  'src/bar/workspaces/workspace_object.c',
   'src/util/util.c',
 ]
 

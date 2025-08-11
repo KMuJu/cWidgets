@@ -1,13 +1,11 @@
 #include "workspaces.h"
 #include "cJSON.h"
-#include "gio/gio.h"
 #include "glib-object.h"
 #include "glib.h"
 #include "glibconfig.h"
 #include "gtk/gtk.h"
 #include "gtk/gtkshortcut.h"
 #include "util.h"
-#include "workspace_object.h"
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
@@ -16,9 +14,20 @@
 #include <unistd.h>
 
 typedef struct {
+  gint id;
+  char *name;
+} Workspace;
+
+void workspace_free(gpointer data) {
+  Workspace *w = data;
+  g_free(w->name);
+  g_free(w);
+}
+
+typedef struct {
   GtkWidget *box;
-  int active_workspace_id;
-  GListStore *workspaces;
+  gint active_workspace_id;
+  GPtrArray *workspaces;
   guint index;
 } HyprlandState;
 
@@ -38,30 +47,15 @@ static void hyprland_state_free(HyprlandState *hs) {
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(HyprlandState, hyprland_state_free)
 
-static gboolean workspace_object_equal(gconstpointer a, gconstpointer b) {
-  const WorkspaceObject *a_o = a;
-  const WorkspaceObject *b_o = b;
-  Workspace *a_w = workspace_object_get_state(a_o);
-  Workspace *b_w = workspace_object_get_state(b_o);
-  return a_w->id == b_w->id;
-}
-
-static gint workspace_compare(const Workspace *a, const Workspace *b) {
+static gint workspace_compare(gconstpointer a_p, gconstpointer b_p) {
+  const Workspace *a = a_p;
+  const Workspace *b = b_p;
   if (a->id < b->id)
     return -1;
   else if (a->id > b->id)
     return 1;
   else
     return 0;
-}
-
-static gint workspace_object_compare(gconstpointer a, gconstpointer b,
-                                     gpointer data) {
-  const WorkspaceObject *a_o = a;
-  const WorkspaceObject *b_o = b;
-  Workspace *a_w = workspace_object_get_state(a_o);
-  Workspace *b_w = workspace_object_get_state(b_o);
-  return workspace_compare(a_w, b_w);
 }
 
 // Caller must close the socket
@@ -145,7 +139,7 @@ int hyprland_ipc1(const char *msg, char *output, gint output_len) {
   return 0;
 }
 
-int get_hyprland_workspaces(GListStore *list) {
+int get_hyprland_workspaces(GPtrArray *array) {
   char buffer[8192] = {0};
   int count = 0;
 
@@ -167,58 +161,19 @@ int get_hyprland_workspaces(GListStore *list) {
     int id = (int)cJSON_GetNumberValue(id_item);
     char *name = cJSON_GetStringValue(name_item);
 
-    g_print("From json: id(%d), name(%s)\n", id, name);
-    g_list_store_insert_sorted(list, workspace_object_new(id, name),
-                               workspace_object_compare, NULL);
+    Workspace *w = g_new0(Workspace, 1);
+    w->id = id;
+    w->name = g_strdup(name);
+    g_ptr_array_add(array, w);
   }
+
+  cJSON_Delete(root);
 
   return count;
 }
 
-static gboolean remove_from_list(GListStore *list, int id, char *name) {
-  guint position = -1;
-  WorkspaceObject *item = workspace_object_new(id, name);
-
-  if (!g_list_store_find_with_equal_func(list, item, workspace_object_equal,
-                                         &position)) {
-    g_message("Could not find item to remove from list");
-    return FALSE;
-  }
-
-  g_list_store_remove(list, position);
-
-  g_object_unref(item);
-
-  return TRUE;
-}
-
-static gboolean add_to_list(GListStore *list, int id, char *name) {
-  WorkspaceObject *item = workspace_object_new(id, name);
-  g_print("Added %d - %s\n", id, name);
-
-  g_list_store_insert_sorted(list, item, workspace_object_compare, NULL);
-
-  return TRUE;
-}
-
 static void on_button_click(GtkButton *self, gpointer data) {
   HyprlandState *hs = data;
-
-  guint len = g_list_model_get_n_items(G_LIST_MODEL(hs->workspaces));
-  for (size_t i = 0; i < len; i++) {
-    GObject *obj = g_list_model_get_object(G_LIST_MODEL(hs->workspaces), i);
-    if (!obj)
-      continue; // Safety check
-
-    Workspace *workspace =
-        workspace_object_get_state(WORKSPACE_WORKSPACE_OBJECT(obj));
-
-    if (!workspace) {
-      g_object_unref(obj);
-      continue;
-    }
-    g_message("Workspace: %d, %s", workspace->id, workspace->name);
-  }
 
   gint workspace_id =
       GPOINTER_TO_INT(g_object_get_data(G_OBJECT(self), "workspace-id"));
@@ -234,64 +189,55 @@ static void on_button_click(GtkButton *self, gpointer data) {
     return;
   }
 
-  g_message("Output %s", output_buf);
+  g_message("Moved workspace: %s", output_buf);
+}
+
+static gboolean set_active_workspace(gpointer data) {
+  HyprlandState *hs = data;
+
+  GtkWidget *child = gtk_widget_get_first_child(hs->box);
+  while (child) {
+    gint id =
+        GPOINTER_TO_INT(g_object_get_data(G_OBJECT(child), "workspace-id"));
+    if (hs->active_workspace_id != id)
+      gtk_widget_remove_css_class(child, "active");
+    else
+      gtk_widget_add_css_class(child, "active");
+
+    child = gtk_widget_get_next_sibling(child);
+  }
+
+  return G_SOURCE_REMOVE;
 }
 
 static gboolean update_ui(gpointer data) {
-  UpdateUiState *ui = data;
-  HyprlandState *hs = ui->hs;
-  g_print("Workspaces changed\n");
-  g_print("Position(%u), removed(%u), added(%u)\n", ui->position, ui->removed,
-          ui->added);
+  HyprlandState *hs = data;
+  g_ptr_array_set_size(hs->workspaces, 0);
+
+  get_hyprland_workspaces(hs->workspaces);
+
+  g_ptr_array_sort_values(hs->workspaces, workspace_compare);
 
   remove_children(hs->box);
-  guint list_size = g_list_model_get_n_items(G_LIST_MODEL(hs->workspaces));
+  guint list_size = hs->workspaces->len;
 
   for (guint i = 0; i < list_size; i++) {
-    GObject *obj = g_list_model_get_object(G_LIST_MODEL(hs->workspaces), i);
-    if (!obj)
-      continue; // Safety check
-
-    Workspace *workspace =
-        workspace_object_get_state(WORKSPACE_WORKSPACE_OBJECT(obj));
-
-    if (!workspace) {
-      g_object_unref(obj);
-      continue;
-    }
+    Workspace *workspace = g_ptr_array_index(hs->workspaces, i);
 
     GtkWidget *button = gtk_button_new_with_label(workspace->name);
     g_object_set_data(G_OBJECT(button), "workspace-id",
                       GINT_TO_POINTER(workspace->id));
-
-    // int id = workspace->id;
-    // g_object_set_data(G_OBJECT(button), "workspace-id", GINT_TO_POINTER(id));
-    // g_print("Workspace id(%d), name(%s)\n", workspace->id, workspace->name);
-    // g_message("Id(%d), position(%d)\n", id, ui->position + i);
 
     g_signal_connect(button, "clicked", G_CALLBACK(on_button_click), hs);
 
     gtk_box_append(GTK_BOX(hs->box), button);
   }
 
-  free(ui);
-  return G_SOURCE_REMOVE;
-}
-
-static void items_changed(GListModel *self, guint position, guint removed,
-                          guint added, gpointer user_data) {
-  UpdateUiState *ui = g_new0(UpdateUiState, 1);
-  ui->hs = user_data;
-  ui->position = position;
-  ui->removed = removed;
-  ui->added = added;
-  g_idle_add(update_ui, ui);
+  return set_active_workspace(hs);
 }
 
 void init_hyprland(HyprlandState *hs) {
-  hs->workspaces = g_list_store_new(workspace_object_get_type());
-  g_signal_connect(hs->workspaces, "items-changed", G_CALLBACK(items_changed),
-                   hs);
+  hs->workspaces = g_ptr_array_new_with_free_func(workspace_free);
 
   char buffer[8192] = {0};
 
@@ -306,8 +252,9 @@ void init_hyprland(HyprlandState *hs) {
 
   cJSON *id_item = cJSON_GetObjectItem(root, "id");
   hs->active_workspace_id = (int)cJSON_GetNumberValue(id_item);
+  cJSON_Delete(root);
 
-  get_hyprland_workspaces(hs->workspaces);
+  g_idle_add(update_ui, hs);
 }
 
 gpointer listen_to_hyprland_socket(gpointer data) {
@@ -328,25 +275,23 @@ gpointer listen_to_hyprland_socket(gpointer data) {
     char *line = strtok(buf, "\n");
     while (line) {
       if (strncmp(line, "createworkspacev2>>", 19) == 0) {
-        g_message("%s", line);
-        char *id_str = strtok(line + 19, ",");
-        char *name = strtok(NULL, ",");
-        int id = atoi(id_str);
-        g_message("Created workspace id(%d), name(%s)", id, name);
-        add_to_list(hs->workspaces, id, name);
+        // char *id_str = strtok(line + 19, ",");
+        // char *name = strtok(NULL, ",");
+        // int id = atoi(id_str);
+        // g_message("Created workspace id(%d), name(%s)", id, name);
+        g_idle_add(update_ui, hs);
       } else if (strncmp(line, "destroyworkspacev2>>", 20) == 0) {
-        g_message("%s", line);
-        char *id_str = strtok(line + 20, ",");
-        char *name = strtok(NULL, ",");
-        int id = atoi(id_str);
-        g_message("Destroyed workspace id(%d), name(%s)", id, name);
-        remove_from_list(hs->workspaces, id, name);
+        // char *id_str = strtok(line + 20, ",");
+        // char *name = strtok(NULL, ",");
+        // int id = atoi(id_str);
+        // g_message("Destroyed workspace id(%d), name(%s)", id, name);
+        g_idle_add(update_ui, hs);
       } else if (strncmp(line, "workspacev2>>", 13) == 0) {
         char *id_str = strtok(line + 13, ",");
-        char *name = strtok(NULL, ",");
         int id = atoi(id_str);
         hs->active_workspace_id = id;
         // g_message("Found workspace id(%d), name(%s)", id, name);
+        g_idle_add(set_active_workspace, hs);
       }
 
       line = strtok(NULL, "\n");
