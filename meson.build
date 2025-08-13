@@ -3,11 +3,27 @@ project(
   'c',
   version: '0.1.0',
   default_options: [
-    'buildtype=debug',                    # -g, minimal optimization
+    'buildtype=debug', # -g, minimal optimization
     'warning_level=3',
-    'b_sanitize=address,undefined',       # built-in sanitizers
-  ]
+    'optimization=3',
+    'b_sanitize=address,undefined', # built-in sanitizers
+  ],
 )
+
+# SCSS → CSS compile step
+sass_prog = find_program('sass', required: true)
+
+scss_file = files('scss/style.scss')
+css_file = 'style.css'
+
+scss_build = custom_target(
+  'compile-scss',
+  input: scss_file,
+  output: css_file,
+  command: [sass_prog, '@INPUT@', '@OUTPUT@'],
+  build_by_default: true,
+)
+scss_dep = declare_dependency(sources: scss_build)
 
 # Dependencies
 libnm = dependency('libnm')
@@ -24,6 +40,7 @@ deps = [
   libpipewire,
   libwireplumber,
   libcjson,
+  scss_dep,
 ]
 
 src = [

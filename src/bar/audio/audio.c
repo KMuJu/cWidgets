@@ -33,7 +33,7 @@ static void update_audio_ui(AudioState *as, gboolean muted, int audio_level) {
     return;
   }
   if (audio_level > 999) {
-    g_message("Audio level is too high: %d\n", audio_level);
+    g_message("Audio level is too high: %d", audio_level);
     return;
   }
   char audio_str[4];
@@ -89,7 +89,7 @@ static void on_mixer_changed(WpPlugin *mixer_api, guint32 node_id,
 static void on_def_nodes_changed(WpPlugin *def_node_api, guint32 node_id,
                                  gpointer user_data) {
   AudioState *as = (AudioState *)user_data;
-  g_message("Default node changed: %d\n", node_id);
+  g_message("Default node changed: %d", node_id);
 
   const gchar *media_class = "Audio/Sink";
 
@@ -119,7 +119,7 @@ static void object_added_callback(WpObjectManager *self, gpointer object,
     as->default_sink_id = wp_proxy_get_bound_id(WP_PROXY(node));
     as->default_sink_node = g_object_ref(node); // Keep reference
 
-    g_message("Default sink: %s (ID: %u)\n", node_name, as->default_sink_id);
+    g_message("Default sink: %s (ID: %u)", node_name, as->default_sink_id);
 
     update_volume_info(as, as->default_sink_id);
   }
@@ -130,7 +130,7 @@ static void object_removed_callback(WpObjectManager *om, WpObject *object,
   AudioState *data = user_data;
 
   if (WP_IS_NODE(object) && WP_NODE(object) == data->default_sink_node) {
-    g_message("Default sink removed\n");
+    g_message("Default sink removed");
 
     g_clear_object(&data->default_sink_node);
     data->default_sink_id = 0;

@@ -1,6 +1,6 @@
 #include "wifi.h"
+#include "glib-object.h"
 #include "networking.h"
-#include "util.h"
 #include <NetworkManager.h>
 #include <glib.h>
 #include <gtk/gtk.h>
@@ -57,7 +57,7 @@ void add_wifi_widget(GtkWidget *box) {
   if (NULL == wifi_device)
     return;
 
-  g_signal_connect(wifi_device, "notify:active-access-point",
+  g_signal_connect(wifi_device, "notify::active-access-point",
                    G_CALLBACK(on_active_ap_changed), activeApState);
 
   on_active_ap_changed(wifi_device, NULL, activeApState);
@@ -76,8 +76,9 @@ void on_active_ap_changed(NMDeviceWifi *device, GParamSpec *pspec,
     s->strength_handler_id = 0;
   }
 
-  NMAccessPoint *ap = nm_device_wifi_get_active_access_point(device);
-  if (ap) {
+  NMAccessPoint *_ap = nm_device_wifi_get_active_access_point(device);
+  if (_ap) {
+    NMAccessPoint *ap = g_object_ref(_ap);
     s->previous_ap = g_object_ref(ap);
     s->strength_handler_id = g_signal_connect(
         ap, "notify::strength", G_CALLBACK(on_strength_changed), s);
@@ -90,9 +91,15 @@ void on_active_ap_changed(NMDeviceWifi *device, GParamSpec *pspec,
       return;
     }
     const guint8 *ssid_data = g_bytes_get_data(ssid_bytes, &len);
+    g_message("AP (%p), Ssid_data(%p), len(%lu)", (void *)ap, ssid_data, len);
+    if (!ssid_data || len > 32 || (uintptr_t)ssid_data < 0x1000) {
+      g_warning("ssid_data is NULL(%p) or len to long, len(%lu)", ssid_data,
+                len);
+      return;
+    }
     g_autofree char *ssid_str = nm_utils_ssid_to_utf8(ssid_data, len);
 
-    g_message("Active AP changed: %s\n", ssid_str ? ssid_str : "(unknown)");
+    g_message("Active AP changed: %s", ssid_str ? ssid_str : "(unknown)");
 
     gtk_widget_set_tooltip_text(image, ssid_str);
   } else {
