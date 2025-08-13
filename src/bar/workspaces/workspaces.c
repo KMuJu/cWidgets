@@ -16,11 +16,13 @@
 typedef struct {
   gint id;
   char *name;
+  char *active_window;
 } Workspace;
 
 void workspace_free(gpointer data) {
   Workspace *w = data;
   g_free(w->name);
+  g_free(w->active_window);
   g_free(w);
 }
 
@@ -30,13 +32,6 @@ typedef struct {
   GPtrArray *workspaces;
   guint index;
 } HyprlandState;
-
-typedef struct {
-  HyprlandState *hs;
-  guint position;
-  guint removed;
-  guint added;
-} UpdateUiState;
 
 static void hyprland_state_free(HyprlandState *hs) {
   if (!hs)
@@ -158,12 +153,15 @@ int get_hyprland_workspaces(GPtrArray *array) {
     cJSON *item = cJSON_GetArrayItem(root, i);
     cJSON *id_item = cJSON_GetObjectItem(item, "id");
     cJSON *name_item = cJSON_GetObjectItem(item, "name");
+    cJSON *title_item = cJSON_GetObjectItem(item, "lastwindowtitle");
     int id = (int)cJSON_GetNumberValue(id_item);
     char *name = cJSON_GetStringValue(name_item);
+    char *title = cJSON_GetStringValue(title_item);
 
     Workspace *w = g_new0(Workspace, 1);
     w->id = id;
     w->name = g_strdup(name);
+    w->active_window = g_strdup(title);
     g_ptr_array_add(array, w);
   }
 
@@ -188,8 +186,6 @@ static void on_button_click(GtkButton *self, gpointer data) {
     g_message("Could not move to workspace");
     return;
   }
-
-  g_message("Moved workspace: %s", output_buf);
 }
 
 static gboolean set_active_workspace(gpointer data) {
@@ -225,8 +221,13 @@ static gboolean update_ui(gpointer data) {
     Workspace *workspace = g_ptr_array_index(hs->workspaces, i);
 
     GtkWidget *button = gtk_button_new_with_label(workspace->name);
+
     g_object_set_data(G_OBJECT(button), "workspace-id",
                       GINT_TO_POINTER(workspace->id));
+
+    gtk_widget_set_tooltip_text(button, workspace->active_window);
+    gtk_widget_set_cursor(button, get_pointer_cursor());
+    gtk_widget_add_css_class(button, "workspace-button");
 
     g_signal_connect(button, "clicked", G_CALLBACK(on_button_click), hs);
 
@@ -274,23 +275,15 @@ gpointer listen_to_hyprland_socket(gpointer data) {
 
     char *line = strtok(buf, "\n");
     while (line) {
+      // g_message("Line: %s", line);
       if (strncmp(line, "createworkspacev2>>", 19) == 0) {
-        // char *id_str = strtok(line + 19, ",");
-        // char *name = strtok(NULL, ",");
-        // int id = atoi(id_str);
-        // g_message("Created workspace id(%d), name(%s)", id, name);
         g_idle_add(update_ui, hs);
       } else if (strncmp(line, "destroyworkspacev2>>", 20) == 0) {
-        // char *id_str = strtok(line + 20, ",");
-        // char *name = strtok(NULL, ",");
-        // int id = atoi(id_str);
-        // g_message("Destroyed workspace id(%d), name(%s)", id, name);
         g_idle_add(update_ui, hs);
       } else if (strncmp(line, "workspacev2>>", 13) == 0) {
         char *id_str = strtok(line + 13, ",");
         int id = atoi(id_str);
         hs->active_workspace_id = id;
-        // g_message("Found workspace id(%d), name(%s)", id, name);
         g_idle_add(set_active_workspace, hs);
       }
 
