@@ -1,9 +1,14 @@
 #include "battery.h"
+#include "gdk/gdk.h"
 #include "gio/gio.h"
+#include "glib-object.h"
 #include "glib.h"
 #include "gtk/gtk.h"
+#include "gtk/gtkrevealer.h"
 #include "gtk/gtkshortcut.h"
+#include "util.h"
 #include <dirent.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <string.h>
 
@@ -13,6 +18,11 @@ struct BatteryWidgets {
   GtkWidget *label;
   GtkWidget *image;
   double energyFull;
+};
+
+struct PowerProfile {
+  char *label;
+  char *cmd;
 };
 
 static void battery_ui_refresh(gpointer data, int energy, gboolean charging) {
@@ -109,12 +119,75 @@ int initial_sync(GDBusProxy *proxy, struct BatteryWidgets *bw) {
   return 0;
 }
 
+static void on_battery_button_click(GtkButton *self, gpointer data) {
+  GtkWidget *revealer = data;
+  gboolean open = gtk_revealer_get_child_revealed(GTK_REVEALER(revealer));
+  gtk_revealer_set_reveal_child(GTK_REVEALER(revealer), !open);
+}
+
+static void on_power_profile_button_click(GtkButton *self, gpointer data) {
+  char *cmd = data;
+  GError *error = NULL;
+  gboolean success =
+      g_spawn_sync(NULL, // working dir
+                   (gchar *[]){"powerprofilesctl", "set", cmd, NULL},
+                   NULL,                // envp
+                   G_SPAWN_SEARCH_PATH, // flags
+                   NULL,                // child setup
+                   NULL,                // user data
+                   NULL,                // stdout
+                   NULL,                // stderr
+                   NULL,                // exit status
+                   &error);
+
+  if (!success) {
+    g_printerr("Error: %s\n", error->message);
+    g_error_free(error);
+  }
+}
+
 void start_battery_widget(GtkWidget *box, GDBusConnection *connection) {
+  GtkWidget *battery_button = gtk_button_new();
+  GtkWidget *battery_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
   GtkWidget *image = gtk_image_new_from_icon_name("battery-symbolic");
   GtkWidget *label = gtk_label_new("...");
 
-  gtk_box_append(GTK_BOX(box), image);
-  gtk_box_append(GTK_BOX(box), label);
+  GdkCursor *pointer = get_pointer_cursor();
+  gtk_widget_set_cursor(battery_button, pointer);
+
+  gtk_box_append(GTK_BOX(battery_box), image);
+  gtk_box_append(GTK_BOX(battery_box), label);
+  gtk_button_set_child(GTK_BUTTON(battery_button), battery_box);
+  gtk_box_append(GTK_BOX(box), battery_button);
+
+  GtkWidget *revealer = gtk_revealer_new();
+  GtkWidget *revealer_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+  gtk_revealer_set_child(GTK_REVEALER(revealer), revealer_box);
+  gtk_revealer_set_transition_type(GTK_REVEALER(revealer),
+                                   GTK_REVEALER_TRANSITION_TYPE_SLIDE_RIGHT);
+
+  gtk_widget_add_css_class(revealer_box, "power_profiles");
+
+  struct PowerProfile power_profiles[3] = {
+      {.label = "Performance", .cmd = "performance"},
+      {.label = "Balanced", .cmd = "balanced"},
+      {.label = "Power saver", .cmd = "power-saver"}};
+
+  for (size_t i = 0; i < sizeof(power_profiles) / sizeof(struct PowerProfile);
+       i++) {
+    struct PowerProfile pp = power_profiles[i];
+    GtkWidget *button = gtk_button_new_with_label(pp.label);
+    gtk_widget_set_cursor(button, pointer);
+
+    g_signal_connect(button, "clicked",
+                     G_CALLBACK(on_power_profile_button_click), pp.cmd);
+    gtk_box_append(GTK_BOX(revealer_box), button);
+  }
+
+  gtk_box_append(GTK_BOX(box), revealer);
+
+  g_signal_connect(battery_button, "clicked",
+                   G_CALLBACK(on_battery_button_click), revealer);
 
   struct BatteryWidgets *bw = calloc(1, sizeof(struct BatteryWidgets));
   bw->label = label;
