@@ -32,6 +32,6 @@ void start_date_time_widget(GtkWidget *box) {
   gtk_box_append(GTK_BOX(box), dtw->time_label);
   gtk_box_append(GTK_BOX(box), dtw->date_label);
 
-  g_timeout_add(1, on_timeout, dtw);
+  g_timeout_add(1000, on_timeout, dtw);
   on_timeout(dtw);
 }
