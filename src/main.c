@@ -17,6 +17,17 @@ typedef struct {
   gint exit_code;
 } MainContext;
 
+static void load_css(void) {
+  GtkCssProvider *provider = gtk_css_provider_new();
+  gtk_css_provider_load_from_path(provider, "style.css");
+
+  GdkDisplay *display = gdk_display_get_default();
+  gtk_style_context_add_provider_for_display(
+      display, GTK_STYLE_PROVIDER(provider), GTK_STYLE_PROVIDER_PRIORITY_USER);
+
+  g_object_unref(provider);
+}
+
 static void on_plugin_loaded(WpCore *core, GAsyncResult *res,
                              MainContext *ctx) {
   GError *error = NULL;
@@ -28,7 +39,7 @@ static void on_plugin_loaded(WpCore *core, GAsyncResult *res,
     return;
   }
 
-  g_message("Loaded plugin: %d\n", ctx->pending_plugins);
+  g_message("Loaded plugin: %d", ctx->pending_plugins);
 
   // If there are no more plugins to load
   // install object manager to trigger run
@@ -41,6 +52,7 @@ static void on_plugin_loaded(WpCore *core, GAsyncResult *res,
 
 static void run(MainContext *ctx) {
   gtk_init();
+  load_css();
   GdkDisplay *display = gdk_display_get_default();
   GListModel *monitors = gdk_display_get_monitors(display);
   guint n_monitors = g_list_model_get_n_items(monitors);
