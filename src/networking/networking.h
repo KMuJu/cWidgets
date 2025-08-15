@@ -23,16 +23,5 @@ typedef enum {
 #define WIFI_UTIL_ERROR (wifi_util_error_quark())
 GQuark wifi_util_error_quark(void);
 
-// Control widget
-void clean_children(GtkWidget *);
-
-void on_ap_added(NMDeviceWifi *device, GParamSpec *spec, gpointer user_data);
-
-void refresh_wifi_list();
-
-void rescan(NMDeviceWifi *device);
-
-void rescan_cb(GObject *source_object, GAsyncResult *res, gpointer user_data);
-
 G_END_DECLS
 #endif // !NETOWRKING_H

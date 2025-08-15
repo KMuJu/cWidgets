@@ -98,14 +98,12 @@ int main(int argc, char *argv[]) {
 
   // DBUS
   GError *error = NULL;
-  GDBusConnection *connection = g_bus_get_sync(G_BUS_TYPE_SYSTEM, NULL, &error);
-  if (!connection) {
+  ctx.dbus_connection = g_bus_get_sync(G_BUS_TYPE_SYSTEM, NULL, &error);
+  if (!ctx.dbus_connection) {
     g_printerr("Failed to connect to system bus: %s\n", error->message);
     g_error_free(error);
     return 1;
   }
-
-  ctx.dbus_connection = connection;
 
   // WIREPLUMBER
   wp_init(WP_INIT_PIPEWIRE | WP_INIT_SPA_TYPES | WP_INIT_SET_PW_LOG);

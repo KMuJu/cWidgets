@@ -79,11 +79,8 @@ void on_active_ap_changed(NMDeviceWifi *device, GParamSpec *pspec,
   NMAccessPoint *_ap = nm_device_wifi_get_active_access_point(device);
   if (_ap) {
     NMAccessPoint *ap = g_object_ref(_ap);
-    s->previous_ap = g_object_ref(ap);
-    s->strength_handler_id = g_signal_connect(
-        ap, "notify::strength", G_CALLBACK(on_strength_changed), s);
-
-    on_strength_changed(ap, NULL, s);
+    if (s->previous_ap)
+      s->previous_ap = g_object_ref(ap);
 
     gsize len;
     g_autoptr(GBytes) ssid_bytes = nm_access_point_get_ssid(ap);
@@ -91,17 +88,21 @@ void on_active_ap_changed(NMDeviceWifi *device, GParamSpec *pspec,
       return;
     }
     const guint8 *ssid_data = g_bytes_get_data(ssid_bytes, &len);
-    g_message("AP (%p), Ssid_data(%p), len(%lu)", (void *)ap, ssid_data, len);
-    if (!ssid_data || len > 32 || (uintptr_t)ssid_data < 0x1000) {
-      g_warning("ssid_data is NULL(%p) or len to long, len(%lu)", ssid_data,
+    if (!ssid_data || len > 32 || (uintptr_t)ssid_data < 0xfffff) {
+      g_warning("ssid_data is invalid(%p) or len to long, len(%lu)", ssid_data,
                 len);
+      g_clear_object(&s->previous_ap);
+      s->strength_handler_id = 0;
       return;
     }
     g_autofree char *ssid_str = nm_utils_ssid_to_utf8(ssid_data, len);
 
-    g_message("Active AP changed: %s", ssid_str ? ssid_str : "(unknown)");
-
     gtk_widget_set_tooltip_text(image, ssid_str);
+
+    s->strength_handler_id = g_signal_connect(
+        ap, "notify::strength", G_CALLBACK(on_strength_changed), s);
+
+    on_strength_changed(ap, NULL, s);
   } else {
     gtk_widget_set_tooltip_text(image, "disconnected");
     gtk_image_set_from_icon_name(GTK_IMAGE(image), ICON_OFFLINE);
