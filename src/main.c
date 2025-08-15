@@ -1,4 +1,5 @@
 #include "bar/bar.h"
+#include "bluetooth/bt.h"
 #include "gio/gio.h"
 #include "glib-object.h"
 #include "glib.h"
@@ -104,6 +105,7 @@ int main(int argc, char *argv[]) {
     g_error_free(error);
     return 1;
   }
+  bluetooth_set_dbus_conn(ctx.dbus_connection);
 
   // WIREPLUMBER
   wp_init(WP_INIT_PIPEWIRE | WP_INIT_SPA_TYPES | WP_INIT_SET_PW_LOG);

@@ -53,6 +53,9 @@ src = [
   'src/bar/date_time/date_time.c',
   'src/bar/workspaces/workspaces.c',
   'src/util/util.c',
+  'src/bluetooth/bt.c',
+  'src/bluetooth/device.c',
+  'src/bluetooth/adapter.c',
 ]
 
 inc_dirs = include_directories(
@@ -60,6 +63,7 @@ inc_dirs = include_directories(
   'src/bar',
   'src/networking',
   'src/util',
+  'src/bluetooth',
 )
 
 exe = executable(
