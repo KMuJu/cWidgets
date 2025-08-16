@@ -4,7 +4,8 @@
 #include "wp/wp.h"
 #include <gtk/gtk.h>
 
-void bar(GtkWidget *window, GDBusConnection *conneciton, WpCore *core,
-         WpObjectManager *om);
+GtkWidget *bar_init_window(GdkDisplay *display, GdkMonitor *monitor);
+void bar(GdkDisplay *display, GdkMonitor *monitor, GDBusConnection *conneciton,
+         WpCore *core, WpObjectManager *om);
 
 #endif // !DEBUG

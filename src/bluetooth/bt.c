@@ -1,5 +1,4 @@
 #include "bt.h"
-#include "adapter.h"
 #include "device.h"
 #include "gio/gdbusobjectmanagerclient.h"
 #include "gio/gdbusobjectproxy.h"
@@ -27,6 +26,7 @@ struct _Bluetooth {
   GHashTable *adapters;
   gboolean connected;
   gboolean powered;
+  gboolean signals_connected;
 };
 
 static GParamSpec *obj_properties[N_PROPS] = {NULL};
@@ -49,6 +49,9 @@ GType dbus_om_get_type(GDBusObjectManagerClient *manager,
 
   if (g_str_equal(interface_name, "org.bluez.Device1")) {
     return DEVICE_TYPE;
+  }
+  if (g_str_equal(interface_name, "org.bluez.Adapter1")) {
+    return ADAPTER_TYPE;
   }
 
   return G_TYPE_DBUS_PROXY;
@@ -212,6 +215,7 @@ static void bluetooth_init(Bluetooth *self) {
   self->devices =
       g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_object_unref);
   self->adapters = g_hash_table_new(g_str_hash, g_str_equal);
+  self->signals_connected = FALSE;
 }
 
 static Bluetooth *bluetooth = NULL;
@@ -227,6 +231,9 @@ Bluetooth *bluetooth_get_default(void) {
 }
 
 void bluetooth_install_signals(Bluetooth *self) {
+  if (self->signals_connected)
+    return;
+
   GDBusObjectManager *manager = bluetooth_get_dbus_om();
 
   g_signal_connect(manager, "interface-added", G_CALLBACK(on_interface_added),
@@ -238,6 +245,11 @@ void bluetooth_install_signals(Bluetooth *self) {
                    self);
 
   // Iterate over existing objects
+}
+
+void bluetooth_call_signals(Bluetooth *self) {
+  GDBusObjectManager *manager = bluetooth_get_dbus_om();
+
   GList *objects = g_dbus_object_manager_get_objects(manager);
   for (GList *l = objects; l != NULL; l = l->next) {
     GDBusObject *object = G_DBUS_OBJECT(l->data);
@@ -254,4 +266,14 @@ void bluetooth_install_signals(Bluetooth *self) {
   g_signal_emit(self, signals[SIGNAL_POWERED_CHANGED], 0, powered);
   gboolean connected = bluetooth_get_connected(self);
   g_signal_emit(self, signals[SIGNAL_CONNECTED_CHANGED], 0, connected);
+
+  self->signals_connected = TRUE;
+}
+
+Adapter *bluetooth_get_adapter(Bluetooth *self) {
+  if (g_hash_table_size(self->adapters) == 0) {
+    return NULL;
+  }
+  GList *values = g_hash_table_get_values(self->adapters);
+  return g_list_first(values)->data;
 }

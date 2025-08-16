@@ -112,14 +112,10 @@ static void object_added_callback(WpObjectManager *self, gpointer object,
       wp_pipewire_object_get_properties(WP_PIPEWIRE_OBJECT(node));
 
   const gchar *media_class = wp_properties_get(props, "media.class");
-  const gchar *node_name = wp_properties_get(props, "node.name");
 
-  // Check if this is the default audio sink
   if (g_strcmp0(media_class, "Audio/Sink") == 0) {
     as->default_sink_id = wp_proxy_get_bound_id(WP_PROXY(node));
     as->default_sink_node = g_object_ref(node); // Keep reference
-
-    g_message("Default sink: %s (ID: %u)", node_name, as->default_sink_id);
 
     update_volume_info(as, as->default_sink_id);
   }
@@ -130,7 +126,6 @@ static void object_removed_callback(WpObjectManager *om, WpObject *object,
   AudioState *data = user_data;
 
   if (WP_IS_NODE(object) && WP_NODE(object) == data->default_sink_node) {
-    g_message("Default sink removed");
 
     g_clear_object(&data->default_sink_node);
     data->default_sink_id = 0;
