@@ -14,7 +14,9 @@ G_DECLARE_FINAL_TYPE(Adapter, adapter, BLUETOOTH /*Module*/,
 gchar *adapter_get_name(Adapter *self);
 gchar *adapter_get_address(Adapter *self);
 gboolean adapter_get_powered(Adapter *self);
+void adapter_set_powered(Adapter *self, gboolean powered);
 gboolean adapter_get_discovering(Adapter *self);
+void adapter_set_discovering(Adapter *self, gboolean discovering);
 
 G_END_DECLS
 
