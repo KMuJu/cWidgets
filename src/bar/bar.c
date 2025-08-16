@@ -3,6 +3,7 @@
 #include "battery/battery.h"
 #include "bluetooth/bt.h"
 #include "date_time/date_time.h"
+#include "quicksettings/quicksettings.h"
 #include "util.h"
 #include "wifi/wifi.h"
 #include "workspaces/workspaces.h"
@@ -63,7 +64,14 @@ void bar(GdkDisplay *display, GdkMonitor *monitor, GDBusConnection *conneciton,
   gtk_box_append(GTK_BOX(workspaces_box), gtk_label_new("Workspaces"));
   g_thread_new("workspace", listen_to_hyprland_socket, workspaces_box);
 
+  GtkWidget *right_button = gtk_button_new();
+  gtk_widget_add_css_class(right_button, "toggle-button");
+  gtk_widget_set_cursor(right_button, get_pointer_cursor());
+  g_signal_connect_swapped(right_button, "clicked",
+                           G_CALLBACK(toggle_quick_settings), monitor);
+
   GtkWidget *right_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 13);
+  gtk_button_set_child(GTK_BUTTON(right_button), right_box);
 
   GtkWidget *bluetooth_icon =
       gtk_image_new_from_icon_name("bluetooth-symbolic");
@@ -79,7 +87,7 @@ void bar(GdkDisplay *display, GdkMonitor *monitor, GDBusConnection *conneciton,
 
   gtk_center_box_set_start_widget(GTK_CENTER_BOX(box), battery_box);
   gtk_center_box_set_center_widget(GTK_CENTER_BOX(box), workspaces_box);
-  gtk_center_box_set_end_widget(GTK_CENTER_BOX(box), right_box);
+  gtk_center_box_set_end_widget(GTK_CENTER_BOX(box), right_button);
 
   gtk_window_set_child(GTK_WINDOW(window), box);
 }

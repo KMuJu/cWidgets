@@ -1,0 +1,27 @@
+@use "theme" as *;
+@use "sass:color";
+
+.quicksettings {
+  background-color: $bg;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid $fg;
+  margin: 5px;
+
+  .title {
+    margin: 0 50px;
+  }
+
+  .power_btn,
+  .settings {
+    font-size: 1.3rem;
+    min-height: 40px;
+    min-width: 40px;
+    background-color: $button;
+    border-radius: 12px;
+
+    &:hover {
+      background-color: color.adjust($button, $lightness: +10%);
+    }
+  }
+}

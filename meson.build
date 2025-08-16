@@ -56,6 +56,8 @@ src = [
   'src/bluetooth/bt.c',
   'src/bluetooth/device.c',
   'src/bluetooth/adapter.c',
+  'src/quicksettings/quicksettings.c',
+  'src/quicksettings/header.c',
 ]
 
 inc_dirs = include_directories(
@@ -64,6 +66,7 @@ inc_dirs = include_directories(
   'src/networking',
   'src/util',
   'src/bluetooth',
+  'src/quicksettings',
 )
 
 exe = executable(

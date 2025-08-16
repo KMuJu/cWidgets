@@ -1,5 +1,6 @@
 #include "bar/bar.h"
 #include "bluetooth/bt.h"
+#include "quicksettings/quicksettings.h"
 #include <gio/gio.h>
 #include <glib-object.h>
 #include <glib.h>
@@ -66,6 +67,7 @@ static void run(MainContext *ctx) {
 
     bar(display, monitor, ctx->dbus_connection, ctx->core, ctx->om);
 
+    start_quick_settings(display, monitor);
   }
 }
 
