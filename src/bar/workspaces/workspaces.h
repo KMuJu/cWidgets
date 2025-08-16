@@ -1,4 +1,5 @@
 #ifndef WORKSPACES_H
+#define WORKSPACES_H
 
 #include <gtk/gtk.h>
 

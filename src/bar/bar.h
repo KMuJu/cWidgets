@@ -1,4 +1,5 @@
 #ifndef BAR_H
+#define BAR_H
 
 #include "wp/wp.h"
 #include <gtk/gtk.h>

@@ -1,4 +1,6 @@
 #ifndef BAR_WIFI_H
+#define BAR_WIFI_H
+
 #include "NetworkManager.h"
 #include "glib-object.h"
 #include <gtk/gtk.h>

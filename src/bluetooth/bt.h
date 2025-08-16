@@ -1,4 +1,5 @@
 #ifndef BT_H
+#define BT_H
 
 #include "gio/gio.h"
 #include <glib-object.h>

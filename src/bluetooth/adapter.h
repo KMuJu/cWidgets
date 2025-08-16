@@ -1,4 +1,5 @@
 #ifndef ADAPTER_H
+#define ADAPTER_H
 
 #include "gio/gio.h"
 #include <glib-object.h>

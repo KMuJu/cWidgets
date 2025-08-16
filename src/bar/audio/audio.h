@@ -1,4 +1,6 @@
 #ifndef AUDIO_H
+#define AUDIO_H
+
 #include "wp/wp.h"
 #include <gtk/gtk.h>
 

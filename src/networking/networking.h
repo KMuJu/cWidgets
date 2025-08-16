@@ -1,7 +1,8 @@
-#include "NetworkManager.h"
-#include "glib-object.h"
-#include <gtk/gtk.h>
 #ifndef NETOWRKING_H
+#define NETOWRKING_H
+
+#include "NetworkManager.h"
+#include <gtk/gtk.h>
 
 G_BEGIN_DECLS
 
