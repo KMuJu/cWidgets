@@ -70,7 +70,9 @@ void on_active_ap_changed(NMDeviceWifi *device, GParamSpec *pspec,
   ActiveApState *s = user_data;
   GtkWidget *image = s->image;
 
-  if (s->strength_handler_id) {
+  if (s->strength_handler_id && s->previous_ap) {
+    g_message("Prev ap(%p) handler(%lu)", (void *)s->previous_ap,
+              s->strength_handler_id);
     g_signal_handler_disconnect(s->previous_ap, s->strength_handler_id);
     g_clear_object(&s->previous_ap);
     s->strength_handler_id = 0;
@@ -82,20 +84,9 @@ void on_active_ap_changed(NMDeviceWifi *device, GParamSpec *pspec,
     if (s->previous_ap)
       s->previous_ap = g_object_ref(ap);
 
-    gsize len;
-    g_autoptr(GBytes) ssid_bytes = nm_access_point_get_ssid(ap);
-    if (!ssid_bytes) {
+    g_autofree char *ssid_str = ap_get_ssid(ap);
+    if (!ssid_str)
       return;
-    }
-    const guint8 *ssid_data = g_bytes_get_data(ssid_bytes, &len);
-    if (!ssid_data || len > 32 || (uintptr_t)ssid_data < 0xfffff) {
-      g_warning("ssid_data is invalid(%p) or len to long, len(%lu)", ssid_data,
-                len);
-      g_clear_object(&s->previous_ap);
-      s->strength_handler_id = 0;
-      return;
-    }
-    g_autofree char *ssid_str = nm_utils_ssid_to_utf8(ssid_data, len);
 
     gtk_widget_set_tooltip_text(image, ssid_str);
 
