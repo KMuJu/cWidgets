@@ -110,67 +110,6 @@ static void bluetooth_class_init(BluetoothClass *klass) {
                    NULL, NULL, NULL, G_TYPE_NONE, 1, G_TYPE_BOOLEAN);
 }
 
-static void on_interface_added(GDBusObjectManager *manager, GDBusObject *object,
-                               GDBusInterface *interface, gpointer user_data) {
-
-  Bluetooth *bt = BLUETOOTH_BT(user_data);
-  if (BLUETOOTH_IS_DEVICE(interface)) {
-    Device *device = BLUETOOTH_DEVICE(interface);
-    const gchar *obj_path = g_dbus_object_get_object_path(object);
-
-    g_hash_table_insert(bt->devices, g_strdup(obj_path), g_object_ref(device));
-
-    g_signal_emit(bt, signals[SIGNAL_DEVICES_CHANGED], 0, bt->devices);
-  }
-  if (BLUETOOTH_IS_ADAPTER(interface)) {
-    Adapter *adapter = BLUETOOTH_ADAPTER(interface);
-    const gchar *obj_path = g_dbus_object_get_object_path(object);
-
-    g_hash_table_insert(bt->adapters, g_strdup(obj_path),
-                        g_object_ref(adapter));
-
-    g_signal_emit(bt, signals[SIGNAL_ADAPTERS_CHANGED], 0, bt->adapters);
-  }
-}
-
-static void on_interface_removed(GDBusObjectManager *manager,
-                                 GDBusObject *object, GDBusInterface *interface,
-                                 gpointer user_data) {
-  Bluetooth *bt = BLUETOOTH_BT(user_data);
-  if (BLUETOOTH_IS_DEVICE(interface)) {
-    const gchar *obj_path = g_dbus_object_get_object_path(object);
-
-    g_hash_table_remove(bt->adapters, obj_path);
-
-    g_signal_emit(bt, signals[SIGNAL_ADAPTERS_CHANGED], 0, bt->adapters);
-  }
-  if (BLUETOOTH_IS_ADAPTER(interface)) {
-    const gchar *obj_path = g_dbus_object_get_object_path(object);
-
-    g_hash_table_remove(bt->devices, obj_path);
-
-    g_signal_emit(bt, signals[SIGNAL_DEVICES_CHANGED], 0, bt->devices);
-  }
-}
-
-static void on_object_added(GDBusObjectManager *manager, GDBusObject *object,
-                            gpointer user_data) {
-  GList *ifaces = g_dbus_object_get_interfaces(object);
-  for (GList *l = ifaces; l != NULL; l = l->next) {
-    on_interface_added(manager, object, G_DBUS_INTERFACE(l->data), user_data);
-  }
-  g_list_free_full(ifaces, g_object_unref);
-}
-
-static void on_object_removed(GDBusObjectManager *manager, GDBusObject *object,
-                              gpointer user_data) {
-  GList *ifaces = g_dbus_object_get_interfaces(object);
-  for (GList *l = ifaces; l != NULL; l = l->next) {
-    on_interface_removed(manager, object, G_DBUS_INTERFACE(l->data), user_data);
-  }
-  g_list_free_full(ifaces, g_object_unref);
-}
-
 static gboolean bluetooth_get_connected(Bluetooth *self) {
   GHashTableIter iter;
   gpointer value;
@@ -211,6 +150,71 @@ static void bluetooth_sync(Bluetooth *self) {
   }
 }
 
+static void on_interface_added(GDBusObjectManager *manager, GDBusObject *object,
+                               GDBusInterface *interface, gpointer user_data) {
+
+  Bluetooth *bt = BLUETOOTH_BT(user_data);
+  if (BLUETOOTH_IS_DEVICE(interface)) {
+    Device *device = BLUETOOTH_DEVICE(interface);
+    const gchar *obj_path = g_dbus_object_get_object_path(object);
+
+    g_hash_table_insert(bt->devices, g_strdup(obj_path), g_object_ref(device));
+
+    g_signal_emit(bt, signals[SIGNAL_DEVICES_CHANGED], 0, bt->devices);
+  }
+  if (BLUETOOTH_IS_ADAPTER(interface)) {
+    Adapter *adapter = BLUETOOTH_ADAPTER(interface);
+    const gchar *obj_path = g_dbus_object_get_object_path(object);
+
+    g_hash_table_insert(bt->adapters, g_strdup(obj_path),
+                        g_object_ref(adapter));
+
+    g_signal_emit(bt, signals[SIGNAL_ADAPTERS_CHANGED], 0, bt->adapters);
+  }
+}
+
+static void on_interface_removed(GDBusObjectManager *manager,
+                                 GDBusObject *object, GDBusInterface *interface,
+                                 gpointer user_data) {
+  Bluetooth *bt = BLUETOOTH_BT(user_data);
+  if (BLUETOOTH_IS_DEVICE(interface)) {
+    const gchar *obj_path = g_dbus_object_get_object_path(object);
+
+    g_hash_table_remove(bt->adapters, obj_path);
+
+    g_signal_emit(bt, signals[SIGNAL_ADAPTERS_CHANGED], 0, bt->adapters);
+
+    bluetooth_sync(bt);
+  }
+  if (BLUETOOTH_IS_ADAPTER(interface)) {
+    const gchar *obj_path = g_dbus_object_get_object_path(object);
+
+    g_hash_table_remove(bt->devices, obj_path);
+
+    g_signal_emit(bt, signals[SIGNAL_DEVICES_CHANGED], 0, bt->devices);
+
+    bluetooth_sync(bt);
+  }
+}
+
+static void on_object_added(GDBusObjectManager *manager, GDBusObject *object,
+                            gpointer user_data) {
+  GList *ifaces = g_dbus_object_get_interfaces(object);
+  for (GList *l = ifaces; l != NULL; l = l->next) {
+    on_interface_added(manager, object, G_DBUS_INTERFACE(l->data), user_data);
+  }
+  g_list_free_full(ifaces, g_object_unref);
+}
+
+static void on_object_removed(GDBusObjectManager *manager, GDBusObject *object,
+                              gpointer user_data) {
+  GList *ifaces = g_dbus_object_get_interfaces(object);
+  for (GList *l = ifaces; l != NULL; l = l->next) {
+    on_interface_removed(manager, object, G_DBUS_INTERFACE(l->data), user_data);
+  }
+  g_list_free_full(ifaces, g_object_unref);
+}
+
 static void bluetooth_init(Bluetooth *self) {
   self->devices =
       g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_object_unref);
@@ -220,14 +224,15 @@ static void bluetooth_init(Bluetooth *self) {
 
 static Bluetooth *bluetooth = NULL;
 
+// Client should unref
 Bluetooth *bluetooth_get_default(void) {
   if (NULL != bluetooth) {
-    return bluetooth;
+    return g_object_ref(bluetooth);
   }
 
   bluetooth = (Bluetooth *)g_object_new(BLUETOOTH_TYPE, NULL);
 
-  return bluetooth;
+  return g_object_ref(bluetooth);
 }
 
 void bluetooth_install_signals(Bluetooth *self) {
@@ -270,10 +275,11 @@ void bluetooth_call_signals(Bluetooth *self) {
   self->signals_connected = TRUE;
 }
 
+// Client should unref
 Adapter *bluetooth_get_adapter(Bluetooth *self) {
   if (g_hash_table_size(self->adapters) == 0) {
     return NULL;
   }
   GList *values = g_hash_table_get_values(self->adapters);
-  return g_list_first(values)->data;
+  return g_object_ref(g_list_first(values)->data);
 }
