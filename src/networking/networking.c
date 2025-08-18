@@ -33,6 +33,13 @@ static gboolean ensure_client(GError **error) {
   return TRUE;
 }
 
+NMClient *wifi_util_get_client(GError **error) {
+  if (!ensure_client(error))
+    return NULL;
+
+  return g_object_ref(global_client);
+}
+
 NMDeviceWifi *wifi_util_get_primary_wifi_device(GError **error) {
   if (cached_wifi)
     return g_object_ref(cached_wifi); /* return new ref */
@@ -78,4 +85,23 @@ void wifi_util_cleanup(void) {
   g_clear_object(&cached_wifi);
   g_clear_object(&global_client);
   g_mutex_unlock(&init_mutex);
+}
+
+gchar *ap_get_ssid(NMAccessPoint *ap) {
+  if (!ap) {
+    g_message("No ap");
+  }
+  gsize len;
+  GBytes *ssid_bytes = nm_access_point_get_ssid(ap);
+  if (!ssid_bytes) {
+    return NULL;
+  }
+
+  const guint8 *ssid_data = g_bytes_get_data(ssid_bytes, &len);
+  if (!ssid_data || len > 32 || (uintptr_t)ssid_data < 0xfffff) {
+    g_warning("ssid_data is invalid(%p) or len to long, len(%lu)", ssid_data,
+              len);
+    return NULL;
+  }
+  return nm_utils_ssid_to_utf8(ssid_data, len);
 }

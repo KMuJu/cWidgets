@@ -9,6 +9,7 @@ G_BEGIN_DECLS
 /* Returns a referenced NMDeviceWifi* (caller must unref). On error or not found
  * returns NULL. */
 NMDeviceWifi *wifi_util_get_primary_wifi_device(GError **error);
+NMClient *wifi_util_get_client(GError **error);
 
 /* Force-refresh the cached device (e.g., if interfaces changed). */
 void wifi_util_refresh(void);
@@ -23,6 +24,8 @@ typedef enum {
 
 #define WIFI_UTIL_ERROR (wifi_util_error_quark())
 GQuark wifi_util_error_quark(void);
+
+gchar *ap_get_ssid(NMAccessPoint *ap);
 
 G_END_DECLS
 #endif // !NETOWRKING_H
