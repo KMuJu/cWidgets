@@ -1,22 +1,24 @@
 #include "audio.h"
-#include "glib-object.h"
-#include "glib.h"
-#include "glibconfig.h"
-#include "gtk/gtk.h"
-#include "gtk/gtkshortcut.h"
-#include "wp/core.h"
-#include "wp/node.h"
-#include "wp/object.h"
-#include "wp/plugin.h"
-#include "wp/proxy-interfaces.h"
-#include "wp/proxy.h"
+#include <glib-object.h>
+#include <glib.h>
+#include <glibconfig.h>
+#include <gtk/gtk.h>
+#include <gtk/gtkshortcut.h>
 #include <spa/pod/iter.h>
+#include <wp/core.h>
+#include <wp/node.h>
+#include <wp/object.h>
+#include <wp/plugin.h>
+#include <wp/proxy-interfaces.h>
+#include <wp/proxy.h>
 
 static const char ICON_MUTED[] = "audio-volume-muted-symbolic";
 static const char ICON_LOW[] = "audio-volume-low-symbolic";
 static const char ICON_MEDIUM[] = "audio-volume-medium-symbolic";
 static const char ICON_HIGH[] = "audio-volume-high-symbolic";
 static const char ICON_OVERAMPLIFIED[] = "audio-volume-overamplified-symbolic";
+
+static const gchar *sink_media_class = "Audio/Sink";
 
 typedef struct {
   GtkWidget *image;
@@ -88,47 +90,12 @@ static void on_mixer_changed(WpPlugin *mixer_api, guint32 node_id,
 
 static void on_def_nodes_changed(WpPlugin *def_node_api, gpointer user_data) {
   AudioState *as = (AudioState *)user_data;
-  static const gchar *media_class = "Audio/Sink";
 
   if (def_node_api) {
-    g_signal_emit_by_name(def_node_api, "get-default-node", media_class,
+    g_signal_emit_by_name(def_node_api, "get-default-node", sink_media_class,
                           &as->default_sink_id);
-  }
-}
-
-static void object_added_callback(WpObjectManager *self, gpointer object,
-                                  gpointer user_data) {
-  AudioState *as = user_data;
-  if (!WP_IS_NODE(object)) {
-    g_printerr("Oject is not a node\n");
-    return;
-  }
-
-  WpNode *node = WP_NODE(object);
-
-  g_autoptr(WpProperties) props =
-      wp_pipewire_object_get_properties(WP_PIPEWIRE_OBJECT(node));
-
-  const gchar *media_class = wp_properties_get(props, "media.class");
-
-  if (g_strcmp0(media_class, "Audio/Sink") == 0) {
-    as->default_sink_id = wp_proxy_get_bound_id(WP_PROXY(node));
-    as->default_sink_node = g_object_ref(node); // Keep reference
-
     update_volume_info(as, as->default_sink_id);
-  }
-}
-
-static void object_removed_callback(WpObjectManager *om, WpObject *object,
-                                    gpointer user_data) {
-  AudioState *data = user_data;
-
-  if (WP_IS_NODE(object) && WP_NODE(object) == data->default_sink_node) {
-
-    g_clear_object(&data->default_sink_node);
-    data->default_sink_id = 0;
-
-    update_audio_ui(data, FALSE, -1);
+    g_message("Found default sink");
   }
 }
 
@@ -157,13 +124,16 @@ void start_audio_widget(GtkWidget *box, WpCore *core, WpObjectManager *om) {
   if (as->def_nodes_api) {
     g_signal_connect(as->def_nodes_api, "changed",
                      G_CALLBACK(on_def_nodes_changed), as);
+
+    on_def_nodes_changed(as->def_nodes_api, as);
   } else {
     g_warning("Could not find def_node-api plugin");
   }
 
-  g_signal_connect(om, "object-added", G_CALLBACK(object_added_callback), as);
-  g_signal_connect(om, "object-removed", G_CALLBACK(object_removed_callback),
-                   as);
+  // g_signal_connect(om, "object-added", G_CALLBACK(object_added_callback),
+  // as); g_signal_connect(om, "object-removed",
+  // G_CALLBACK(object_removed_callback),
+  //                  as);
 
   wp_core_install_object_manager(core, om);
   wp_object_manager_request_object_features(om, WP_TYPE_NODE,
