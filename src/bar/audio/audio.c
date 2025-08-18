@@ -86,16 +86,14 @@ static void on_mixer_changed(WpPlugin *mixer_api, guint32 node_id,
   }
 }
 
-static void on_def_nodes_changed(WpPlugin *def_node_api, guint32 node_id,
-                                 gpointer user_data) {
+static void on_def_nodes_changed(WpPlugin *def_node_api, gpointer user_data) {
   AudioState *as = (AudioState *)user_data;
-  g_message("Default node changed: %d", node_id);
+  static const gchar *media_class = "Audio/Sink";
 
-  const gchar *media_class = "Audio/Sink";
-
-  if (as->def_nodes_api)
-    g_signal_emit_by_name(as->def_nodes_api, "get-default-node", media_class,
-                          &as->default_sink_node);
+  if (def_node_api) {
+    g_signal_emit_by_name(def_node_api, "get-default-node", media_class,
+                          &as->default_sink_id);
+  }
 }
 
 static void object_added_callback(WpObjectManager *self, gpointer object,
@@ -150,9 +148,6 @@ void start_audio_widget(GtkWidget *box, WpCore *core, WpObjectManager *om) {
 
   as->mixer_api = wp_plugin_find(core, "mixer-api");
   if (as->mixer_api) {
-    g_object_ref(as->mixer_api); // Keep a reference
-
-    // Connect to mixer change signals
     g_signal_connect(as->mixer_api, "changed", G_CALLBACK(on_mixer_changed),
                      as);
   } else {
@@ -160,9 +155,6 @@ void start_audio_widget(GtkWidget *box, WpCore *core, WpObjectManager *om) {
   }
   as->def_nodes_api = wp_plugin_find(core, "default-nodes-api");
   if (as->def_nodes_api) {
-    g_object_ref(as->def_nodes_api); // Keep a reference
-
-    // Connect to def_node change signals
     g_signal_connect(as->def_nodes_api, "changed",
                      G_CALLBACK(on_def_nodes_changed), as);
   } else {
