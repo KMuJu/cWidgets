@@ -1,5 +1,6 @@
 #include "bar/bar.h"
 #include "bluetooth/bt.h"
+#include "log.h"
 #include "quicksettings/quicksettings.h"
 #include <gio/gio.h>
 #include <glib-object.h>
@@ -52,6 +53,14 @@ static void on_plugin_loaded(WpCore *core, GAsyncResult *res,
 static void run(MainContext *ctx) {
   gtk_init();
   load_css();
+
+  init_logger("cWidgets.log");
+  if (log_file) {
+    dup2(fileno(log_file), STDERR_FILENO);
+  }
+  redirect_glib_logs();
+
+  LOG("Application started");
 
   bluetooth_install_signals(bluetooth_get_default());
 
@@ -121,6 +130,9 @@ int main(int argc, char *argv[]) {
   g_signal_connect_swapped(om, "installed", (GCallback)run, &ctx);
 
   g_main_loop_run(loop);
+
+  LOG("Application exiting");
+  close_logger();
 
   return ctx.exit_code;
 }
