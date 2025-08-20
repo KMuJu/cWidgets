@@ -2,12 +2,7 @@
 #include "util.h"
 
 static void on_settings_clicked(void) {
-  GError *error = NULL;
-  if (!g_spawn_command_line_async(
-          "env XDG_CURRENT_DESKTOP=gnome gnome-control-center", &error)) {
-    g_printerr("Failed to launch gnome-control-center: %s\n", error->message);
-    g_error_free(error);
-  }
+  sh("env XDG_CURRENT_DESKTOP=gnome gnome-control-center");
 }
 
 GtkWidget *qs_header(void) {

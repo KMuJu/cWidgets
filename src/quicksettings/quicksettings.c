@@ -2,7 +2,8 @@
 #include "gdk/gdk.h"
 #include "gtk4-layer-shell.h"
 #include "header.h"
-#include "util.h"
+#include "togglebutton.h"
+#include "wifi_page.h"
 #include <glib.h>
 #include <gtk/gtk.h>
 
@@ -45,16 +46,30 @@ static GtkWidget *qs_window(GdkDisplay *display, GdkMonitor *monitor) {
   gtk_widget_set_visible(window, FALSE);
   gtk_widget_set_hexpand(window, FALSE);
   gtk_widget_set_vexpand(window, FALSE);
+  gtk_window_set_resizable(GTK_WINDOW(window), FALSE);
   return window;
 }
 
 static void quicksettings(GtkWidget *window) {
-  GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
+  GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
   gtk_widget_add_css_class(box, "quicksettings");
 
   GtkWidget *header_box = qs_header();
 
   gtk_box_append(GTK_BOX(box), header_box);
+
+  GtkWidget *buttons = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 16);
+  gtk_widget_set_halign(buttons, GTK_ALIGN_CENTER);
+
+  GtkWidget *notification = notification_button();
+  GtkWidget *colorpicker = colorpicker_button();
+  gtk_box_append(GTK_BOX(buttons), notification);
+  gtk_box_append(GTK_BOX(buttons), colorpicker);
+
+  gtk_box_append(GTK_BOX(box), buttons);
+
+  GtkWidget *wifi = wifi_page();
+  gtk_box_append(GTK_BOX(box), wifi);
 
   gtk_window_set_child(GTK_WINDOW(window), box);
 }

@@ -58,6 +58,9 @@ src = [
   'src/bluetooth/adapter.c',
   'src/quicksettings/quicksettings.c',
   'src/quicksettings/header.c',
+  'src/quicksettings/togglebutton.c',
+  'src/quicksettings/wifi_page.c',
+  'src/quicksettings/page.c',
 ]
 
 inc_dirs = include_directories(

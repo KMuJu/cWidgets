@@ -3,25 +3,113 @@
 
 .quicksettings {
   background-color: $bg;
-  padding: 8px;
+  padding: 16px;
   border-radius: 8px;
   border: 1px solid $fg;
   margin: 5px;
 
   .title {
-    margin: 0 50px;
+    margin: 0 80px; // Controls the size of the widget
   }
 
+  .button,
   .power_btn,
+  .toggle-button,
   .settings {
-    font-size: 1.3rem;
+    image {
+      -gtk-icon-size: 1.5rem;
+    }
+
     min-height: 40px;
     min-width: 40px;
     background-color: $button;
-    border-radius: 12px;
+    border-radius: 8px;
 
     &:hover {
-      background-color: color.adjust($button, $lightness: +10%);
+      background-color: $button-hover;
+    }
+  }
+
+  .toggle-button.off {
+    background-color: $button-off;
+  }
+
+  .page-button {
+
+    image {
+      -gtk-icon-size: 1.5rem;
+    }
+
+    .toggle,
+    .open {
+      background-color: $button;
+      padding: 8px;
+
+      &:hover {
+        background-color: $button-hover;
+      }
+    }
+
+    .toggle {
+      border-top-left-radius: 8px;
+      border-bottom-left-radius: 8px;
+
+      &.off {
+        background-color: $button-off;
+      }
+    }
+
+    .open {
+      border-top-right-radius: 8px;
+      border-bottom-right-radius: 8px;
+    }
+
+
+    .title {
+      font-size: 1.5rem;
+    }
+
+    .name {
+      font-size: 0.8rem;
+    }
+
+  }
+
+  .page {
+    .ap-entry {
+      border-radius: 8px;
+      padding: 4px;
+
+      &:hover {
+        background-color: $button-off;
+      }
+
+      &.active {
+        background-color: $button-off;
+
+        &:hover {
+          background-color: $button;
+        }
+      }
+
+    }
+
+    .header {
+      margin-top: 10px;
+      margin-left: 5px;
+      margin-right: 5px;
+
+      .open-settings,
+      .rescan-wifi {
+        min-height: 30px;
+        min-width: 30px;
+        background-color: $button;
+        border-radius: 8px;
+
+        &:hover {
+          background-color: $button-hover;
+        }
+      }
     }
   }
 }

@@ -13,5 +13,8 @@ GtkWidget *find_child_by_property_int(GtkWidget *box, const char *property,
 GtkWidget *get_nth_child(GtkWidget *box, guint index);
 
 void remove_children(GtkWidget *box);
+void remove_children_start(GtkWidget *box, guint start);
+
+void sh(const gchar *cmd);
 
 #endif /* !UTIL_H */

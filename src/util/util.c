@@ -53,3 +53,23 @@ void remove_children(GtkWidget *box) {
     child = next;
   }
 }
+
+void remove_children_start(GtkWidget *box, guint start) {
+  GtkWidget *child = gtk_widget_get_first_child(box);
+  guint i = 0;
+  while (child != NULL) {
+    GtkWidget *next = gtk_widget_get_next_sibling(child);
+    if (i >= start)
+      gtk_widget_unparent(child);
+    child = next;
+    i++;
+  }
+}
+
+void sh(const gchar *cmd) {
+  GError *error = NULL;
+  if (!g_spawn_command_line_async(cmd, &error)) {
+    g_printerr("Failed to call '%s': %s\n", cmd, error->message);
+    g_error_free(error);
+  }
+}
