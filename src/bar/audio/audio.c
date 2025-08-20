@@ -24,7 +24,6 @@ typedef struct {
   GtkWidget *image;
   GtkWidget *label;
   guint32 default_sink_id;
-  WpNode *default_sink_node;
   WpPlugin *mixer_api;
   WpPlugin *def_nodes_api;
 } AudioState;
@@ -83,7 +82,7 @@ static void on_mixer_changed(WpPlugin *mixer_api, guint32 node_id,
   AudioState *as = (AudioState *)user_data;
 
   // Only update if it's our default sink
-  if (node_id == wp_proxy_get_bound_id(WP_PROXY(as->default_sink_node))) {
+  if (node_id == as->default_sink_id) {
     update_volume_info(as, node_id);
   }
 }
