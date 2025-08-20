@@ -29,7 +29,6 @@ struct _Bluetooth {
   gboolean signals_connected;
 };
 
-static GParamSpec *obj_properties[N_PROPS] = {NULL};
 static guint signals[N_SIGNALS] = {0};
 
 G_DEFINE_TYPE(Bluetooth, bluetooth, G_TYPE_OBJECT)
@@ -40,8 +39,6 @@ static GDBusObjectManager *dbus_om = NULL;
 GType dbus_om_get_type(GDBusObjectManagerClient *manager,
                        const gchar *object_path, const gchar *interface_name,
                        gpointer data) {
-  // g_print("Creating proxy for object: %s, interface: %s\n", object_path,
-  //         interface_name ? interface_name : "(null)");
 
   if (NULL == interface_name) {
     return G_TYPE_DBUS_OBJECT_PROXY;
@@ -142,11 +139,11 @@ static void bluetooth_sync(Bluetooth *self) {
 
   if (self->powered != powered) {
     self->powered = powered;
-    g_signal_emit(self, SIGNAL_POWERED_CHANGED, 0, powered);
+    g_signal_emit(self, signals[SIGNAL_POWERED_CHANGED], 0, powered);
   }
   if (self->connected != connected) {
     self->connected = connected;
-    g_signal_emit(self, SIGNAL_CONNECTED_CHANGED, 0, connected);
+    g_signal_emit(self, signals[SIGNAL_CONNECTED_CHANGED], 0, connected);
   }
 }
 
@@ -248,8 +245,6 @@ void bluetooth_install_signals(Bluetooth *self) {
   g_signal_connect(manager, "object-added", G_CALLBACK(on_object_added), self);
   g_signal_connect(manager, "object-removed", G_CALLBACK(on_object_removed),
                    self);
-
-  // Iterate over existing objects
 }
 
 void bluetooth_call_signals(Bluetooth *self) {
