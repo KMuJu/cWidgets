@@ -13,6 +13,7 @@ static void on_device_properties_changed(Device *proxy,
 struct _Device {
   GDBusProxy parent_instance;
   Bluetooth *bt;
+  gulong props_changed_signal;
 };
 
 enum {
@@ -31,6 +32,10 @@ static void device_dispose(GObject *gobject);
 static void device_finalize(GObject *gobject);
 
 static void device_class_init(DeviceClass *klass) {
+  GObjectClass *object_class = G_OBJECT_CLASS(klass);
+
+  object_class->dispose = device_dispose;
+  object_class->finalize = device_finalize;
 
   signals[SIGNAL_PAIRED] =
       g_signal_new("paired", G_TYPE_FROM_CLASS(klass), G_SIGNAL_RUN_LAST, 0,
@@ -50,8 +55,25 @@ static void device_class_init(DeviceClass *klass) {
 }
 
 static void device_init(Device *self) {
-  g_signal_connect(self, "g-properties-changed",
-                   G_CALLBACK(on_device_properties_changed), NULL);
+  self->props_changed_signal =
+      g_signal_connect(self, "g-properties-changed",
+                       G_CALLBACK(on_device_properties_changed), NULL);
+}
+
+static void device_dispose(GObject *gobject) {
+  Device *self = BLUETOOTH_DEVICE(gobject);
+
+  if (self->props_changed_signal != 0) {
+    g_signal_handler_disconnect(self, self->props_changed_signal);
+    self->props_changed_signal = 0;
+  }
+
+  g_object_unref(self->bt);
+
+  G_OBJECT_CLASS(device_parent_class)->dispose(gobject);
+}
+static void device_finalize(GObject *gobject) {
+  G_OBJECT_CLASS(device_parent_class)->finalize(gobject);
 }
 
 static void on_device_properties_changed(Device *proxy,
@@ -86,7 +108,9 @@ static void on_device_properties_changed(Device *proxy,
   bluetooth_update_devices(proxy->bt);
 }
 
-void device_set_bt(Device *self, Bluetooth *bt) { self->bt = BLUETOOTH_BT(bt); }
+void device_set_bt(Device *self, Bluetooth *bt) {
+  self->bt = g_object_ref(BLUETOOTH_BT(bt));
+}
 
 gboolean device_get_paired(Device *self) {
   g_return_val_if_fail(BLUETOOTH_IS_DEVICE(self), FALSE);

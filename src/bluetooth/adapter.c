@@ -12,6 +12,7 @@ static void on_adapter_properties_changed(Adapter *proxy,
 struct _Adapter {
   GDBusProxy parent_instance;
   Bluetooth *bt;
+  gulong props_changed_signal;
 };
 
 enum {
@@ -24,7 +25,15 @@ static guint signals[N_SIGNALS] = {0};
 
 G_DEFINE_TYPE(Adapter, adapter, G_TYPE_DBUS_PROXY)
 
+static void adapter_dispose(GObject *gobject);
+static void adapter_finalize(GObject *gobject);
+
 static void adapter_class_init(AdapterClass *klass) {
+  GObjectClass *object_class = G_OBJECT_CLASS(klass);
+
+  object_class->dispose = adapter_dispose;
+  object_class->finalize = adapter_finalize;
+
   signals[SIGNAL_POWERED] =
       g_signal_new("powered", G_TYPE_FROM_CLASS(klass), G_SIGNAL_RUN_LAST, 0,
                    NULL, NULL, NULL, G_TYPE_NONE, 1, G_TYPE_BOOLEAN);
@@ -35,8 +44,25 @@ static void adapter_class_init(AdapterClass *klass) {
 }
 
 static void adapter_init(Adapter *self) {
-  g_signal_connect(self, "g-properties-changed",
-                   G_CALLBACK(on_adapter_properties_changed), NULL);
+  self->props_changed_signal =
+      g_signal_connect(self, "g-properties-changed",
+                       G_CALLBACK(on_adapter_properties_changed), NULL);
+}
+
+static void adapter_dispose(GObject *gobject) {
+  Adapter *self = BLUETOOTH_ADAPTER(gobject);
+
+  if (self->props_changed_signal != 0) {
+    g_signal_handler_disconnect(self, self->props_changed_signal);
+    self->props_changed_signal = 0;
+  }
+
+  g_object_unref(self->bt);
+
+  G_OBJECT_CLASS(adapter_parent_class)->dispose(gobject);
+}
+static void adapter_finalize(GObject *gobject) {
+  G_OBJECT_CLASS(adapter_parent_class)->finalize(gobject);
 }
 
 static void on_adapter_properties_changed(Adapter *proxy,
@@ -65,7 +91,9 @@ static void on_adapter_properties_changed(Adapter *proxy,
   bluetooth_update_adapters(proxy->bt);
 }
 
-void adapter_set_bt(Adapter *self, void *bt) { self->bt = BLUETOOTH_BT(bt); }
+void adapter_set_bt(Adapter *self, void *bt) {
+  self->bt = g_object_ref(BLUETOOTH_BT(bt));
+}
 
 gchar *adapter_get_address(Adapter *self) {
   g_return_val_if_fail(BLUETOOTH_IS_ADAPTER(self), NULL);
