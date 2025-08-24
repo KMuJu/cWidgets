@@ -60,6 +60,7 @@ src = [
   'src/quicksettings/header.c',
   'src/quicksettings/togglebutton.c',
   'src/quicksettings/wifi_page.c',
+  'src/quicksettings/bluetooth_page.c',
   'src/quicksettings/page.c',
 ]
 

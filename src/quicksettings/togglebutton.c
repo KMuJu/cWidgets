@@ -68,6 +68,7 @@ gboolean get_notification_state(void) {
   } else {
     if (stdout_buf) {
       g_strstrip(stdout_buf);
+      g_message("Notifications: %s", stdout_buf);
 
       if (g_strcmp0(stdout_buf, "true") == 0)
         paused = TRUE;
@@ -78,7 +79,7 @@ gboolean get_notification_state(void) {
 
 GtkWidget *notification_button(void) {
 
-  gboolean is_off = !get_notification_state();
+  gboolean is_off = get_notification_state();
 
   GtkWidget *btn = togglebutton(&props, is_off);
 

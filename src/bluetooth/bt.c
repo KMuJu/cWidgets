@@ -282,6 +282,12 @@ Adapter *bluetooth_get_adapter(Bluetooth *self) {
   return g_object_ref(g_list_first(values)->data);
 }
 
+GHashTable *bluetooth_get_devices(Bluetooth *self) {
+  if (!self->devices)
+    return NULL;
+  return g_object_ref(self->devices);
+}
+
 void bluetooth_update_devices(Bluetooth *self) {
   g_signal_emit(self, signals[SIGNAL_ADAPTERS_CHANGED], 0, self->adapters);
 }

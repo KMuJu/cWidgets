@@ -1,4 +1,5 @@
 #include "quicksettings.h"
+#include "bluetooth_page.h"
 #include "gdk/gdk.h"
 #include "gtk4-layer-shell.h"
 #include "header.h"
@@ -70,6 +71,9 @@ static void quicksettings(GtkWidget *window) {
 
   GtkWidget *wifi = wifi_page();
   gtk_box_append(GTK_BOX(box), wifi);
+
+  GtkWidget *bluetooth = bluetooth_page();
+  gtk_box_append(GTK_BOX(box), bluetooth);
 
   gtk_window_set_child(GTK_WINDOW(window), box);
 }
