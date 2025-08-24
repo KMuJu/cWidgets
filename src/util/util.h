@@ -17,4 +17,6 @@ void remove_children_start(GtkWidget *box, guint start);
 
 void sh(const gchar *cmd);
 
+gchar *truncate_string(gchar *ssid, gulong max_len);
+
 #endif /* !UTIL_H */

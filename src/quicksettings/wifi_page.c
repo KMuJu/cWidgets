@@ -34,24 +34,6 @@ static void launch_wifi_settings(void) {
 
 static void wifi_rescan(void) { sh("nmcli device wifi rescan"); }
 
-static gchar *truncate_ssid(gchar *ssid) {
-  gulong length = g_utf8_strlen(ssid, -1);
-
-  if (length > MAX_NAME_LEN) {
-    gchar *end_pos = g_utf8_offset_to_pointer(ssid, MAX_NAME_LEN);
-    gsize byte_length = end_pos - ssid;
-
-    gchar *truncated = g_new(gchar, byte_length + 1);
-    g_strlcpy(truncated, ssid, byte_length + 1);
-
-    gchar *label_str = g_strconcat(truncated, "...", NULL);
-    g_free(truncated);
-    return label_str;
-  }
-
-  return g_strdup(ssid);
-}
-
 static gint compare_aps(gconstpointer a_p, gconstpointer b_p) {
   const NMAccessPoint *a = a_p;
   const NMAccessPoint *b = b_p;
@@ -74,9 +56,9 @@ static GtkWidget *ap_entry(NMAccessPoint *ap, PageButton *pb) {
     return gtk_label_new("<No Name>");
   }
 
-  g_autofree gchar *ssid = truncate_ssid(ssid_full);
+  g_autofree gchar *ssid = truncate_string(ssid_full, MAX_NAME_LEN);
   GtkWidget *label = gtk_label_new(ssid);
-  gtk_widget_add_css_class(label, "ap-entry");
+  gtk_widget_add_css_class(label, "entry");
   gtk_widget_set_cursor(label, get_pointer_cursor());
   gtk_widget_set_tooltip_text(label, ssid_full);
 
@@ -174,7 +156,7 @@ static void on_active_ap_changed(NMDeviceWifi *device, GParamSpec *pspec,
     if (!ssid_str)
       return;
 
-    g_autofree gchar *label_str = truncate_ssid(ssid_str);
+    g_autofree gchar *label_str = truncate_string(ssid_str, MAX_NAME_LEN);
 
     gtk_label_set_text(GTK_LABEL(label), label_str);
   } else {

@@ -81,7 +81,6 @@ static void on_mixer_changed(WpPlugin *mixer_api, guint32 node_id,
                              gpointer user_data) {
   AudioState *as = (AudioState *)user_data;
 
-  // Only update if it's our default sink
   if (node_id == as->default_sink_id) {
     update_volume_info(as, node_id);
   }
@@ -94,7 +93,7 @@ static void on_def_nodes_changed(WpPlugin *def_node_api, gpointer user_data) {
     g_signal_emit_by_name(def_node_api, "get-default-node", sink_media_class,
                           &as->default_sink_id);
     update_volume_info(as, as->default_sink_id);
-    g_message("Found default sink");
+    g_message("New default sink id: %u", as->default_sink_id);
   }
 }
 
@@ -128,11 +127,6 @@ void start_audio_widget(GtkWidget *box, WpCore *core, WpObjectManager *om) {
   } else {
     g_warning("Could not find def_node-api plugin");
   }
-
-  // g_signal_connect(om, "object-added", G_CALLBACK(object_added_callback),
-  // as); g_signal_connect(om, "object-removed",
-  // G_CALLBACK(object_removed_callback),
-  //                  as);
 
   wp_core_install_object_manager(core, om);
   wp_object_manager_request_object_features(om, WP_TYPE_NODE,

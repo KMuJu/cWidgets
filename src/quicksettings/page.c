@@ -31,10 +31,10 @@ PageButton *create_page_button(const gchar *title_str, const gchar *icon_name) {
   gtk_widget_set_hexpand(toggle_button_info_box, TRUE);
   GtkWidget *title = gtk_label_new(title_str);
   gtk_widget_add_css_class(title, "title");
-  GtkWidget *ap_name = gtk_label_new("ITBA");
-  gtk_widget_add_css_class(ap_name, "name");
+  GtkWidget *active_name = gtk_label_new("..");
+  gtk_widget_add_css_class(active_name, "name");
   gtk_box_append(GTK_BOX(toggle_button_info_box), title);
-  gtk_box_append(GTK_BOX(toggle_button_info_box), ap_name);
+  gtk_box_append(GTK_BOX(toggle_button_info_box), active_name);
 
   gtk_box_append(GTK_BOX(toggle_button_box), toggle_button_image);
   gtk_box_append(GTK_BOX(toggle_button_box), toggle_button_info_box);
@@ -67,7 +67,7 @@ PageButton *create_page_button(const gchar *title_str, const gchar *icon_name) {
   pb->arrow_btn = arrow_btn;
   pb->arrow_image = arrow_image;
   pb->toggle_btn = toggle_btn;
-  pb->active_name = ap_name;
+  pb->active_name = active_name;
   pb->image = toggle_button_image;
   pb->revealer = revealer;
   pb->revealer_box = revealer_box;

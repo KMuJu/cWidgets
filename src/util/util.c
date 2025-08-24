@@ -73,3 +73,21 @@ void sh(const gchar *cmd) {
     g_error_free(error);
   }
 }
+
+gchar *truncate_string(gchar *ssid, gulong max_len) {
+  gulong length = g_utf8_strlen(ssid, -1);
+
+  if (length > max_len) {
+    gchar *end_pos = g_utf8_offset_to_pointer(ssid, max_len);
+    gsize byte_length = end_pos - ssid;
+
+    gchar *truncated = g_new(gchar, byte_length + 1);
+    g_strlcpy(truncated, ssid, byte_length + 1);
+
+    gchar *label_str = g_strconcat(truncated, "...", NULL);
+    g_free(truncated);
+    return label_str;
+  }
+
+  return g_strdup(ssid);
+}
