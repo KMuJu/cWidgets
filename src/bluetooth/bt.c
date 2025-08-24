@@ -288,9 +288,10 @@ GHashTable *bluetooth_get_devices(Bluetooth *self) {
   return g_object_ref(self->devices);
 }
 
-void bluetooth_update_devices(Bluetooth *self) {
+// So that other sources can update devices
+void bluetooth_update_adapters(Bluetooth *self) {
   g_signal_emit(self, signals[SIGNAL_ADAPTERS_CHANGED], 0, self->adapters);
 }
-void bluetooth_update_adapters(Bluetooth *self) {
+void bluetooth_update_devices(Bluetooth *self) {
   g_signal_emit(self, signals[SIGNAL_DEVICES_CHANGED], 0, self->devices);
 }

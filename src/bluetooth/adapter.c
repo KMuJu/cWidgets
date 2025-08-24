@@ -1,6 +1,6 @@
 #include "adapter.h"
 #include "bt.h"
-#include "gio/gio.h"
+#include <gio/gio.h>
 #include <glib-object.h>
 #include <glib.h>
 
