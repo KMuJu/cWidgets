@@ -1,4 +1,5 @@
 #include "bt.h"
+#include "adapter.h"
 #include "device.h"
 #include "gio/gdbusobjectmanagerclient.h"
 #include "gio/gdbusobjectproxy.h"
@@ -133,7 +134,7 @@ static gboolean bluetooth_get_powered(Bluetooth *self) {
   return FALSE;
 }
 
-static void bluetooth_sync(Bluetooth *self) {
+void bluetooth_sync(Bluetooth *self) {
   gboolean powered = bluetooth_get_powered(self);
   gboolean connected = bluetooth_get_connected(self);
 
@@ -153,6 +154,7 @@ static void on_interface_added(GDBusObjectManager *manager, GDBusObject *object,
   Bluetooth *bt = BLUETOOTH_BT(user_data);
   if (BLUETOOTH_IS_DEVICE(interface)) {
     Device *device = BLUETOOTH_DEVICE(interface);
+    device_set_bt(device, bt);
     const gchar *obj_path = g_dbus_object_get_object_path(object);
 
     g_hash_table_insert(bt->devices, g_strdup(obj_path), g_object_ref(device));
@@ -161,6 +163,7 @@ static void on_interface_added(GDBusObjectManager *manager, GDBusObject *object,
   }
   if (BLUETOOTH_IS_ADAPTER(interface)) {
     Adapter *adapter = BLUETOOTH_ADAPTER(interface);
+    adapter_set_bt(adapter, (void *)bt);
     const gchar *obj_path = g_dbus_object_get_object_path(object);
 
     g_hash_table_insert(bt->adapters, g_strdup(obj_path),
@@ -277,4 +280,11 @@ Adapter *bluetooth_get_adapter(Bluetooth *self) {
   }
   GList *values = g_hash_table_get_values(self->adapters);
   return g_object_ref(g_list_first(values)->data);
+}
+
+void bluetooth_update_devices(Bluetooth *self) {
+  g_signal_emit(self, signals[SIGNAL_ADAPTERS_CHANGED], 0, self->adapters);
+}
+void bluetooth_update_adapters(Bluetooth *self) {
+  g_signal_emit(self, signals[SIGNAL_DEVICES_CHANGED], 0, self->devices);
 }

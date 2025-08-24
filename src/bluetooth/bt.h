@@ -16,5 +16,8 @@ void bluetooth_set_dbus_conn(GDBusConnection *om);
 void bluetooth_install_signals(Bluetooth *self);
 void bluetooth_call_signals(Bluetooth *self);
 Adapter *bluetooth_get_adapter(Bluetooth *self);
+void bluetooth_sync(Bluetooth *self);
+void bluetooth_update_devices(Bluetooth *self);
+void bluetooth_update_adapters(Bluetooth *self);
 
 #endif // !BT_H

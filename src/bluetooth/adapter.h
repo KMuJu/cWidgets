@@ -11,6 +11,9 @@ G_BEGIN_DECLS
 G_DECLARE_FINAL_TYPE(Adapter, adapter, BLUETOOTH /*Module*/,
                      ADAPTER /*Object name*/, GDBusProxy)
 
+void adapter_set_bt(
+    Adapter *self,
+    /*THIS IS VERY UGLY, BUT IS DONE TO AVOID CIRCULAR IMPORTS*/ void *bt);
 gchar *adapter_get_name(Adapter *self);
 gchar *adapter_get_address(Adapter *self);
 gboolean adapter_get_powered(Adapter *self);
