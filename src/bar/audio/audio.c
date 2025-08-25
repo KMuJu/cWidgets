@@ -37,6 +37,10 @@ static void update_audio_ui(AudioState *as, gboolean muted, int audio_level) {
     g_message("Audio level is too high: %d", audio_level);
     return;
   }
+  if (audio_level < 0) {
+    g_message("Audio level is too low: %d", audio_level);
+    return;
+  }
   char audio_str[4];
   snprintf(audio_str, sizeof(audio_str), "%d", audio_level);
   const char *icon_name;
@@ -97,6 +101,7 @@ static void on_def_nodes_changed(WpPlugin *def_node_api, gpointer user_data) {
   }
 }
 
+// Uses mixer api and default nodes api to handle stuff
 void start_audio_widget(GtkWidget *box, WpCore *core, WpObjectManager *om) {
   GtkWidget *audio_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
   GtkWidget *image = gtk_image_new_from_icon_name(ICON_MUTED);
