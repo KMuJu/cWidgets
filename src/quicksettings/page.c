@@ -12,6 +12,10 @@ static void on_toggle_revealer(GtkButton *self, gpointer data) {
                                    : "go-down-symbolic");
 }
 
+/*
+ * Creates the page button and returns the struct with the widgets
+ * Ownership is given to caller
+ */
 PageButton *create_page_button(const gchar *title_str, const gchar *icon_name) {
   PageButton *pb = g_new0(PageButton, 1);
   GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);

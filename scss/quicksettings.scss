@@ -13,7 +13,8 @@
   }
 
   .button,
-  .power_btn,
+  .power-btn,
+  .power-settings-btn,
   .toggle-button,
   .settings {
     image {
@@ -28,10 +29,27 @@
     &:hover {
       background-color: $button-hover;
     }
+
+    &.on {
+      background-color: $button-on;
+
+      &:hover {
+        background-color: $button-on-hover;
+      }
+    }
+
+    &.power-settings-btn {
+      // Only for buttons in power settings
+      padding: 0 8px;
+    }
   }
 
   .toggle-button.off {
     background-color: $button-off;
+  }
+
+  .power-settings {
+    padding-top: 8px;
   }
 
   .page-button {

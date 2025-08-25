@@ -4,4 +4,6 @@ $fg: #EBDBB2;
 $button: #458588;
 $button-hover: color.adjust($button, $lightness: +10%);
 $button-off: color.adjust($button, $lightness: -10%);
+$button-on: #D79921;
+$button-on-hover: color.adjust($button-on, $lightness: +10%);
 $seperator: #6E6A86;

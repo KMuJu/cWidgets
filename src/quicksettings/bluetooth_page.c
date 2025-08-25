@@ -25,7 +25,6 @@ static void bluetooth_discover(GtkSwitch *self, gboolean state,
   BluetoothData *bd = user_data;
   Adapter *adapter = bluetooth_get_adapter(bd->bt);
   adapter_set_discovering(adapter, state);
-  g_message("Set adapter to %s", state ? "TRUE" : "FALSE");
 }
 
 static void toggle_bluetooth(GtkButton *self, gpointer data) {
@@ -33,13 +32,11 @@ static void toggle_bluetooth(GtkButton *self, gpointer data) {
   Adapter *adapter = bluetooth_get_adapter(bt);
   gboolean powered = adapter_get_powered(adapter);
   adapter_set_powered(adapter, !powered);
-  g_message("Set adapter powered to %s", !powered ? "TRUE" : "FALSE");
 }
 
 static void on_powered_changed(Bluetooth *self, gboolean powered,
                                gpointer user_data) {
   PageButton *pb = user_data;
-  g_message("Powered changed to %s", powered ? "TRUE" : "FALSE");
   if (powered) {
     gtk_widget_remove_css_class(pb->toggle_btn, "off");
     gtk_image_set_from_icon_name(GTK_IMAGE(pb->image), "bluetooth-symbolic");
@@ -63,6 +60,7 @@ static GtkWidget *device_entry(Device *device) {
   return label;
 }
 
+// Return TRUE to delete from hash table, FALSE otherwise
 static gboolean for_each_device(gpointer key, gpointer value,
                                 gpointer user_data) {
   PageButton *pb = user_data;
@@ -88,6 +86,7 @@ static void on_devices_change(Bluetooth *bt, GHashTable *devices,
   PageButton *pb = user_data;
   GHashTable *copy = g_hash_table_new_similar(devices);
 
+  // Copy table so that it can be pruned
   GHashTableIter iter;
   gpointer key, value;
   g_hash_table_iter_init(&iter, devices);
@@ -96,6 +95,8 @@ static void on_devices_change(Bluetooth *bt, GHashTable *devices,
   }
 
   remove_children_start(pb->revealer_box, 1);
+
+  // removes bad devices (no name)
   g_hash_table_foreach_steal(copy, for_each_device, user_data);
 
   gtk_widget_set_size_request(
