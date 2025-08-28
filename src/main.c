@@ -46,6 +46,8 @@ static void on_plugin_loaded(WpCore *core, GAsyncResult *res,
   if (--ctx->pending_plugins == 0) {
     g_autoptr(WpPlugin) mixer_api = wp_plugin_find(core, "mixer-api");
     g_object_set(mixer_api, "scale", 1 /* cubic */, NULL);
+    wp_object_manager_request_object_features(ctx->om, WP_TYPE_NODE,
+                                              WP_OBJECT_FEATURES_ALL);
     wp_core_install_object_manager(ctx->core, ctx->om);
   }
 }
@@ -74,7 +76,7 @@ static void run(MainContext *ctx) {
     const char *name = gdk_monitor_get_model(monitor);
     g_message("Assigning windows to monitor: %s", name);
 
-    bar(display, monitor, ctx->dbus_connection, ctx->core, ctx->om);
+    bar(display, monitor, ctx->dbus_connection, ctx->core);
 
     start_quick_settings(display, monitor);
   }

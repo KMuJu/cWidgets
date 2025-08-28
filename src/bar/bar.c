@@ -48,7 +48,7 @@ GtkWidget *bar_init_window(GdkDisplay *display, GdkMonitor *monitor) {
 }
 
 void bar(GdkDisplay *display, GdkMonitor *monitor, GDBusConnection *conneciton,
-         WpCore *core, WpObjectManager *om) {
+         WpCore *core) {
   GtkWidget *window = bar_init_window(display, monitor);
   GtkWidget *box = gtk_center_box_new();
   gtk_widget_set_hexpand(box, TRUE);
@@ -81,7 +81,7 @@ void bar(GdkDisplay *display, GdkMonitor *monitor, GDBusConnection *conneciton,
   bluetooth_call_signals(bt);
   gtk_box_append(GTK_BOX(right_box), bluetooth_icon);
 
-  start_audio_widget(right_box, core, om);
+  start_audio_widget(right_box, core);
   add_wifi_widget(right_box);
   start_date_time_widget(right_box);
 

@@ -102,7 +102,7 @@ static void on_def_nodes_changed(WpPlugin *def_node_api, gpointer user_data) {
 }
 
 // Uses mixer api and default nodes api to handle stuff
-void start_audio_widget(GtkWidget *box, WpCore *core, WpObjectManager *om) {
+void start_audio_widget(GtkWidget *box, WpCore *core) {
   GtkWidget *audio_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
   GtkWidget *image = gtk_image_new_from_icon_name(ICON_MUTED);
   GtkWidget *label = gtk_label_new("...");
@@ -132,8 +132,4 @@ void start_audio_widget(GtkWidget *box, WpCore *core, WpObjectManager *om) {
   } else {
     g_warning("Could not find def_node-api plugin");
   }
-
-  wp_core_install_object_manager(core, om);
-  wp_object_manager_request_object_features(om, WP_TYPE_NODE,
-                                            WP_OBJECT_FEATURES_ALL);
 }
