@@ -218,7 +218,8 @@ static void on_object_removed(GDBusObjectManager *manager, GDBusObject *object,
 static void bluetooth_init(Bluetooth *self) {
   self->devices =
       g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_object_unref);
-  self->adapters = g_hash_table_new(g_str_hash, g_str_equal);
+  self->adapters =
+      g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_object_unref);
   self->signals_connected = FALSE;
 }
 
