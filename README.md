@@ -87,3 +87,11 @@ Active: <15%
 Idle: 2-3%
 
 Active: 2-3%
+
+## Screenshots
+
+![Only bar](assets/cWidget_bar.png)
+
+![All widgets](assets/cWidget_all_closed.png)
+
+![All widgets open](assets/cWidget_all_open.png)
