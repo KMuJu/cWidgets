@@ -78,7 +78,7 @@ static void run(MainContext *ctx) {
 
     bar(display, monitor, ctx->dbus_connection, ctx->core);
 
-    start_quick_settings(display, monitor);
+    start_quick_settings(display, monitor, ctx->om, ctx->core);
   }
 }
 

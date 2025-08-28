@@ -1,5 +1,7 @@
 @use "sass:color";
 $bg: #1D2021;
+$bg2: color.adjust($bg, $lightness: +5%);
+$bg3: color.adjust($bg, $lightness: +10%);
 $fg: #EBDBB2;
 $button: #458588;
 $button-hover: color.adjust($button, $lightness: +10%);

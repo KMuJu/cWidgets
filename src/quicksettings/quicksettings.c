@@ -1,10 +1,12 @@
 #include "quicksettings.h"
+#include "audio_slider.h"
 #include "bluetooth_page.h"
 #include "gdk/gdk.h"
 #include "gtk4-layer-shell.h"
 #include "header.h"
 #include "togglebutton.h"
 #include "wifi_page.h"
+#include "wp/core.h"
 #include <glib.h>
 #include <gtk/gtk.h>
 
@@ -51,7 +53,8 @@ static GtkWidget *qs_window(GdkDisplay *display, GdkMonitor *monitor) {
   return window;
 }
 
-static void quicksettings(GtkWidget *window) {
+static void quicksettings(GtkWidget *window, WpObjectManager *om,
+                          WpCore *core) {
   GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
   gtk_widget_add_css_class(box, "quicksettings");
 
@@ -69,6 +72,9 @@ static void quicksettings(GtkWidget *window) {
 
   gtk_box_append(GTK_BOX(box), buttons);
 
+  GtkWidget *audio_slider = create_audio_slider(om, core);
+  gtk_box_append(GTK_BOX(box), audio_slider);
+
   GtkWidget *wifi = wifi_page();
   gtk_box_append(GTK_BOX(box), wifi);
 
@@ -78,10 +84,11 @@ static void quicksettings(GtkWidget *window) {
   gtk_window_set_child(GTK_WINDOW(window), box);
 }
 
-void start_quick_settings(GdkDisplay *display, GdkMonitor *monitor) {
+void start_quick_settings(GdkDisplay *display, GdkMonitor *monitor,
+                          WpObjectManager *om, WpCore *core) {
   init_windows();
   GtkWidget *window = qs_window(display, monitor);
-  quicksettings(window);
+  quicksettings(window, om, core);
 
   g_hash_table_insert(windows, monitor, window);
 }

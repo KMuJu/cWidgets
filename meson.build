@@ -10,6 +10,9 @@ project(
   ],
 )
 
+cc = meson.get_compiler('c')
+math_lib = cc.find_library('m', required: true)
+
 # SCSS → CSS compile step
 sass_prog = find_program('sass', required: true)
 
@@ -39,6 +42,7 @@ deps = [
   libwireplumber,
   libcjson,
   scss_dep,
+  math_lib,
 ]
 
 src = [
@@ -60,6 +64,7 @@ src = [
   'src/quicksettings/wifi_page.c',
   'src/quicksettings/bluetooth_page.c',
   'src/quicksettings/page.c',
+  'src/quicksettings/audio_slider.c',
 ]
 
 inc_dirs = include_directories(

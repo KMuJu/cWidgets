@@ -70,7 +70,6 @@ static gboolean for_each_device(gpointer key, gpointer value,
     g_autofree gchar *name = device_get_name(device);
     g_autofree gchar *name_trunc = truncate_string(name, MAX_NAME_LEN);
     gtk_label_set_text(GTK_LABEL(pb->active_name), name_trunc);
-    g_message("Connected to %s", name);
   }
   GtkWidget *entry = device_entry(device);
   if (entry) {

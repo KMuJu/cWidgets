@@ -130,4 +130,42 @@
       }
     }
   }
+
+  .audio-slider {
+    background-color: $bg2;
+    border-radius: 8px;
+
+    .scale-box {
+      .icon {
+        -gtk-icon-size: 1.3rem;
+      }
+
+      padding: 8px;
+    }
+
+    .audio-sinks {
+      background-color: $bg3;
+      border-bottom-left-radius: 8px;
+      border-bottom-right-radius: 8px;
+      padding: 8px;
+
+      .entry {
+        border-radius: 8px;
+        padding: 4px;
+        padding-left: 8px;
+
+        &:hover {
+          background-color: $button-off;
+        }
+
+        &.active {
+          background-color: $button-off;
+
+          &:hover {
+            background-color: $button;
+          }
+        }
+      }
+    }
+  }
 }
