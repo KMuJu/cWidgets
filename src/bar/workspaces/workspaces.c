@@ -78,7 +78,7 @@ static int hyprland_sock(void) {
   strncpy(sockaddr.sun_path, socket_path, sizeof(sockaddr.sun_path) - 1);
 
   if (connect(sockfd, (struct sockaddr *)&sockaddr, sizeof(sockaddr)) < 0) {
-    g_printerr("Could not connect to hyprland socket\n");
+    g_printerr("Could not connect to hyprland socket: %s\n", g_strerror(errno));
     close(sockfd);
     return -1;
   }
@@ -110,7 +110,7 @@ int hyprland_ipc1(const char *msg, char *output, gint output_len) {
   strncpy(sockaddr.sun_path, socket_path, sizeof(sockaddr.sun_path) - 1);
 
   if (connect(sockfd, (struct sockaddr *)&sockaddr, sizeof(sockaddr)) < 0) {
-    g_printerr("Could not connect to hyprland socket");
+    g_printerr("Could not connect to hyprland socket: %s\n", g_strerror(errno));
     close(sockfd);
     return -1;
   }
@@ -297,5 +297,3 @@ gpointer listen_to_hyprland_socket(gpointer data) {
 
   return NULL;
 }
-
-void start_workspace_widget(GtkWidget *box) {}
