@@ -1,5 +1,5 @@
-#ifndef BAR_WIFI_H
-#define BAR_WIFI_H
+#ifndef WIFI_ICON_H
+#define WIFI_ICON_H
 
 #include "NetworkManager.h"
 #include "glib-object.h"
@@ -19,4 +19,4 @@ void on_strength_changed(NMAccessPoint *ap, GParamSpec *pspec,
 void on_active_ap_changed(NMDeviceWifi *device, GParamSpec *pspec,
                           gpointer user_data);
 
-#endif // !BAR_WIFI_H
+#endif // !WIFI_ICON_H

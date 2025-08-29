@@ -49,7 +49,7 @@ src = [
   'src/main.c',
   'src/networking/networking.c',
   'src/bar/bar.c',
-  'src/bar/wifi/wifi.c',
+  'src/bar/wifi/wifi_icon.c',
   'src/bar/battery/battery.c',
   'src/bar/audio/audio.c',
   'src/bar/date_time/date_time.c',

@@ -5,7 +5,7 @@
 #include "date_time/date_time.h"
 #include "quicksettings/quicksettings.h"
 #include "util.h"
-#include "wifi/wifi.h"
+#include "wifi/wifi_icon.h"
 #include "workspaces/workspaces.h"
 #include <gio/gio.h>
 #include <glib-object.h>

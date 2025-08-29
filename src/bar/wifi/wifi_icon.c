@@ -1,4 +1,4 @@
-#include "wifi.h"
+#include "wifi_icon.h"
 #include "glib-object.h"
 #include "networking.h"
 #include <NetworkManager.h>
