@@ -6,6 +6,14 @@ Only polls for the time, everything else is listening to signals or dbus.
 
 Inspired by [jack000987/gtkbar](https://github.com/jack000987/gtkbar) and [Aylur/astal](https://github.com/Aylur/astal).
 
+## Screenshots
+
+![Only bar](assets/cWidget_bar.png)
+
+![All widgets](assets/cWidget_all_closed.png)
+
+![All widgets open](assets/cWidget_all_open.png)
+
 ## Requirements
 
 - gtk4 (Widgets)
@@ -87,11 +95,3 @@ Active: <15%
 Idle: 2-3%
 
 Active: 2-3%
-
-## Screenshots
-
-![Only bar](assets/cWidget_bar.png)
-
-![All widgets](assets/cWidget_all_closed.png)
-
-![All widgets open](assets/cWidget_all_open.png)
