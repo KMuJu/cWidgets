@@ -58,6 +58,18 @@ sass ../scss/style.scss style.css && meson compile && ./cWidgets
 - [Default nodes api](https://github.com/PipeWire/wireplumber/blob/master/modules/module-default-nodes-api.c)
   (The only place you can find the signals for the default nodes api module. Mixer api is in the same folder)
 
+## Future ideas
+
+### IPC socket
+
+To control the widgets from outside the program.
+Like to open and close on a command.
+Can create a cli to do this communication.
+
+### Notification system
+
+To replace dunst
+
 ## Bugs
 
 ### Sometimes does not update bt icon in bar when disconnecting
