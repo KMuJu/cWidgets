@@ -66,18 +66,19 @@ static gboolean for_each_device(gpointer key, gpointer value,
   PageButton *pb = user_data;
   Device *device = value;
   gboolean connected = device_get_connected(device);
+  GtkWidget *entry = device_entry(device);
+  if (!entry) {
+    return TRUE;
+  }
+  gtk_box_append(GTK_BOX(pb->revealer_box), entry);
   if (connected) {
     g_autofree gchar *name = device_get_name(device);
     g_autofree gchar *name_trunc = truncate_string(name, MAX_NAME_LEN);
     gtk_label_set_text(GTK_LABEL(pb->active_name), name_trunc);
-  }
-  GtkWidget *entry = device_entry(device);
-  if (entry) {
-    gtk_box_append(GTK_BOX(pb->revealer_box), entry);
-    return FALSE;
+    gtk_widget_add_css_class(entry, "active");
   }
 
-  return TRUE;
+  return FALSE;
 }
 
 static void on_devices_change(Bluetooth *bt, GHashTable *devices,

@@ -8,12 +8,6 @@
 #include "glib.h"
 
 enum {
-  PROP_0,
-  PROP_CONNECTED,
-  N_PROPS,
-};
-
-enum {
   SIGNAL_DEVICES_CHANGED,
   SIGNAL_ADAPTERS_CHANGED,
   SIGNAL_CONNECTED_CHANGED,

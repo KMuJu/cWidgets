@@ -43,6 +43,8 @@ static GtkWidget *qs_window(GdkDisplay *display, GdkMonitor *monitor) {
   gtk_layer_set_anchor(GTK_WINDOW(window), GTK_LAYER_SHELL_EDGE_RIGHT, TRUE);
   gtk_layer_set_margin(GTK_WINDOW(window), GTK_LAYER_SHELL_EDGE_TOP,
                        geometry.y);
+  gtk_layer_set_keyboard_mode(GTK_WINDOW(window),
+                              GTK_LAYER_SHELL_KEYBOARD_MODE_ON_DEMAND);
 
   gtk_window_present(GTK_WINDOW(window));
 
