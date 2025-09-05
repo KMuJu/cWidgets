@@ -53,11 +53,19 @@ static GtkWidget *device_entry(Device *device) {
     return NULL;
 
   g_autofree gchar *name_trunc = truncate_string(name, MAX_NAME_LEN);
-  GtkWidget *label = gtk_label_new(name_trunc);
-  gtk_widget_add_css_class(label, "entry");
-  gtk_widget_set_cursor(label, get_pointer_cursor());
+  gboolean paired = device_get_paired(device);
+  GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+  gtk_widget_add_css_class(box, "entry-box");
+  GtkWidget *button = gtk_button_new_with_label(name_trunc);
+  gtk_widget_add_css_class(button, "entry");
+  gtk_widget_set_cursor(button, get_pointer_cursor());
 
-  return label;
+  if (paired)
+    gtk_widget_add_css_class(button, "known");
+
+  gtk_box_append(GTK_BOX(box), button);
+
+  return box;
 }
 
 // Return TRUE to delete from hash table, FALSE otherwise

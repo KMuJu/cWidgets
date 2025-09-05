@@ -150,6 +150,7 @@ static GtkWidget *ap_entry(NMAccessPoint *ap, PageButton *pb) {
   gboolean known = ap_is_known(ap);
 
   GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+  gtk_widget_add_css_class(box, "entry-box");
   GtkWidget *button = gtk_button_new();
   GtkWidget *entry_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
   gtk_button_set_child(GTK_BUTTON(button), entry_box);
@@ -185,11 +186,13 @@ static GtkWidget *ap_entry(NMAccessPoint *ap, PageButton *pb) {
   if (secured || known) {
     GtkWidget *revealer = gtk_revealer_new();
     GtkWidget *entry_revealer_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
+    gtk_widget_add_css_class(entry_revealer_box, "options-box");
     gtk_revealer_set_child(GTK_REVEALER(revealer), entry_revealer_box);
 
     if (!known) { // Is secured and not known -> connect button with password
       GtkWidget *button = gtk_button_new_with_label("Connect");
       gtk_widget_set_cursor_from_name(button, "pointer");
+      gtk_widget_add_css_class(button, "option-btn");
       gtk_box_append(GTK_BOX(entry_revealer_box), button);
       GtkWidget *inner_revealer = gtk_revealer_new();
       GtkWidget *inner_revealer_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 4);
@@ -208,6 +211,7 @@ static GtkWidget *ap_entry(NMAccessPoint *ap, PageButton *pb) {
                        inner_revealer);
     } else { // Remove connection
       GtkWidget *button = gtk_button_new_with_label("Forget");
+      gtk_widget_add_css_class(button, "option-btn");
       gtk_widget_set_cursor_from_name(button, "pointer");
       gtk_box_append(GTK_BOX(entry_revealer_box), button);
 

@@ -93,32 +93,53 @@
 
   }
 
+  // Page
   .page {
-    .entry {
+    .entry-box {
       border-radius: 8px;
-      padding: 4px;
-      padding-left: 8px;
+      background-color: $bg2;
 
-      &:hover {
-        background-color: $button-off;
-      }
-
-      &.active {
-        background-color: $button-off;
-
-        &:hover {
-          background-color: $button;
-        }
-      }
-
-      &.known {
-        background-color: $button-off_2;
+      // The entry with the name and symbols
+      .entry {
+        border-radius: 8px;
+        padding: 4px;
+        padding-left: 8px;
 
         &:hover {
           background-color: $button-off;
         }
+
+        &.active {
+          background-color: $button-off;
+
+          &:hover {
+            background-color: $button;
+          }
+        }
+
+        &.known {
+          background-color: $button-off_2;
+
+          &:hover {
+            background-color: $button-off;
+          }
+        }
       }
 
+      // Button for stuff like connect, forget, pair
+      .options-box {
+        margin: 8px;
+
+        .option-btn {
+          background-color: $button;
+          border-radius: 8px;
+          margin: 0 16px;
+
+          &:hover {
+            background-color: $button-hover;
+          }
+        }
+      }
     }
 
     .header {
