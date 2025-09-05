@@ -2,6 +2,7 @@
 #include "NetworkManager.h"
 #include "glib-object.h"
 #include "glib.h"
+#include "nm-core-types.h"
 #include <stdio.h>
 
 static NMClient *global_client = NULL;
@@ -89,7 +90,7 @@ void wifi_util_cleanup(void) {
 
 gchar *ap_get_ssid(NMAccessPoint *ap) {
   if (!ap) {
-    g_message("No ap");
+    return NULL;
   }
   gsize len;
   GBytes *ssid_bytes = nm_access_point_get_ssid(ap);
@@ -101,6 +102,26 @@ gchar *ap_get_ssid(NMAccessPoint *ap) {
   if (!ssid_data || len > 32 || (uintptr_t)ssid_data < 0xfffff) {
     g_warning("ssid_data is invalid(%p) or len to long, len(%lu)", ssid_data,
               len);
+    return NULL;
+  }
+  return nm_utils_ssid_to_utf8(ssid_data, len);
+}
+
+gchar *wireless_setting_get_ssid(NMSettingWireless *setting) {
+  if (!setting) {
+    return NULL;
+  }
+  gsize len;
+  GBytes *ssid_bytes = nm_setting_wireless_get_ssid(setting);
+  if (!ssid_bytes) {
+    return NULL;
+  }
+
+  const guint8 *ssid_data = g_bytes_get_data(ssid_bytes, &len);
+  if (!ssid_data || len > 32 || (uintptr_t)ssid_data < 0xfffff) {
+    g_warning(
+        "Wireless setting ssid_data is invalid(%p) or len to long, len(%lu)",
+        ssid_data, len);
     return NULL;
   }
   return nm_utils_ssid_to_utf8(ssid_data, len);

@@ -1,5 +1,8 @@
 #include "wifi_page.h"
+#include "gtk/gtkshortcut.h"
 #include "networking.h"
+#include "nm-core-types.h"
+#include "nm-dbus-interface.h"
 #include "page.h"
 #include "util.h"
 #include <NetworkManager.h>
@@ -9,19 +12,62 @@
 #include <gtk/gtk.h>
 #include <gtk/gtkrevealer.h>
 
-#define MAX_NAME_LEN 20
+#define MAX_NAME_LEN 24
 #define ENTRY_HEIGHT 30
 
 typedef struct {
+  NMClient *client;
   NMAccessPoint *active_ap;
 } WifiData;
+
+static GPtrArray *cached_connections = NULL;
+
+static void on_connection_added(NMClient *client, NMRemoteConnection *conn,
+                                gpointer user_data) {
+  g_ptr_array_add(cached_connections, g_object_ref(conn));
+}
+
+static void on_connection_removed(NMClient *client, NMRemoteConnection *conn,
+                                  gpointer user_data) {
+  for (guint i = 0; i < cached_connections->len; i++) {
+    NMRemoteConnection *c = g_ptr_array_index(cached_connections, i);
+    if (c == conn) {
+      g_ptr_array_remove_index(cached_connections, i);
+      break;
+    }
+  }
+}
+
+static void get_all_connections(NMClient *client) {
+  const GPtrArray *conns = nm_client_get_connections(client);
+  for (size_t i = 0; i < conns->len; i++) {
+    NMRemoteConnection *conn = g_ptr_array_index(conns, i);
+    on_connection_added(client, conn, NULL);
+  }
+}
+
+static gboolean ap_is_known(NMAccessPoint *ap) {
+  g_autofree char *ap_ssid = ap_get_ssid(ap);
+  if (!ap_ssid)
+    return FALSE;
+  for (size_t i = 0; i < cached_connections->len; i++) {
+    NMRemoteConnection *conn = g_ptr_array_index(cached_connections, i);
+    NMSettingWireless *setting =
+        nm_connection_get_setting_wireless(NM_CONNECTION(conn));
+    g_autofree gchar *conn_ssid = wireless_setting_get_ssid(setting);
+
+    if (conn_ssid && g_str_equal(ap_ssid, conn_ssid))
+      return TRUE;
+  }
+  return FALSE;
+}
 
 static NMDeviceWifi *get_wifi_device(void) {
   NMDeviceWifi *wifi_device;
   GError *error;
   wifi_device = wifi_util_get_primary_wifi_device(&error);
   if (!wifi_device) {
-    g_warning("Could not get the wifi_device from wifi.c: %s\n",
+    g_warning("Could not get the wifi_device from wifi_page.c: %s\n",
               error->message);
     return NULL;
   }
@@ -43,9 +89,51 @@ static gint compare_aps(gconstpointer a_p, gconstpointer b_p) {
   if (!b || !G_IS_OBJECT(b))
     return -1;
 
-  return nm_access_point_get_strength(b) - nm_access_point_get_strength(a);
+  return nm_access_point_get_strength((NMAccessPoint *)b) -
+         nm_access_point_get_strength((NMAccessPoint *)a);
 }
 
+static gboolean is_ap_secured(NMAccessPoint *ap) {
+  NM80211ApFlags flags = nm_access_point_get_flags(ap);
+  NM80211ApSecurityFlags wpa = nm_access_point_get_wpa_flags(ap);
+  NM80211ApSecurityFlags rsn = nm_access_point_get_rsn_flags(ap);
+
+  return wpa != 0 || rsn != 0 || (flags & 0x1) == 1;
+}
+
+static void forget_ap(gchar *ssid) {
+  char cmd[512] = {0};
+  g_message("Forgetting: %s", ssid);
+  snprintf(cmd, sizeof(cmd), "nmcli con del id %s", ssid);
+  sh(cmd);
+  // This is to rerun the on_aps_changed to update the known aps.
+  // It might not work, this is weird, might run before the previous cmd is
+  // finished.
+  sh("nmcli dev wifi rescan");
+}
+
+static void open_revealer_on_button_click(GtkButton *btn, gpointer user_data) {
+  GtkRevealer *revealer = GTK_REVEALER(user_data);
+  gboolean open = gtk_revealer_get_reveal_child(revealer);
+  gtk_revealer_set_reveal_child(revealer, !open);
+}
+
+static void password_entered(GtkPasswordEntry *entry, gpointer user_data) {
+  NMAccessPoint *ap = NM_ACCESS_POINT(user_data);
+  const char *password = gtk_editable_get_text(GTK_EDITABLE(entry));
+  g_print("Password entered: %s\n", password);
+  g_autofree gchar *ssid = ap_get_ssid(ap);
+
+  char cmd[512] = {0};
+  snprintf(cmd, sizeof(cmd), "nmcli dev wifi connect '%s' password '%s'", ssid,
+           password);
+  sh(cmd);
+  // Same here as in forget ap
+  sh("nmcli dev wifi rescan");
+}
+
+// TODO: Do something about signals for the ap
+// Might have to add a custom unref function to unconnect the signals
 static GtkWidget *ap_entry(NMAccessPoint *ap, PageButton *pb) {
   if (!ap || !G_IS_OBJECT(ap)) {
     return gtk_label_new("<Invalid AP>");
@@ -56,18 +144,83 @@ static GtkWidget *ap_entry(NMAccessPoint *ap, PageButton *pb) {
     return gtk_label_new("<No Name>");
   }
 
+  // State for ap
   g_autofree gchar *ssid = truncate_string(ssid_full, MAX_NAME_LEN);
-  GtkWidget *label = gtk_label_new(ssid);
-  gtk_widget_add_css_class(label, "entry");
-  gtk_widget_set_cursor(label, get_pointer_cursor());
-  gtk_widget_set_tooltip_text(label, ssid_full);
+  gboolean secured = is_ap_secured(ap);
+  gboolean known = ap_is_known(ap);
+
+  GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+  GtkWidget *button = gtk_button_new();
+  GtkWidget *entry_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+  gtk_button_set_child(GTK_BUTTON(button), entry_box);
+  GtkWidget *image = gtk_image_new_from_icon_name(
+      "network-wireless-signal-excellent-symbolic");
+  GtkWidget *name = gtk_label_new(ssid);
+  gtk_widget_set_hexpand(name, TRUE);
+
+  gtk_box_append(GTK_BOX(entry_box), image);
+  gtk_box_append(GTK_BOX(entry_box), name);
+
+  if (secured && !known) {
+    GtkWidget *lock =
+        gtk_image_new_from_icon_name("system-lock-screen-symbolic");
+
+    gtk_box_append(GTK_BOX(entry_box), lock);
+  }
+
+  gtk_widget_add_css_class(button, "entry");
+  gtk_widget_set_cursor(button, get_pointer_cursor());
+  gtk_widget_set_tooltip_text(button, ssid_full);
+
+  gtk_box_append(GTK_BOX(box), button);
+
+  if (known)
+    gtk_widget_add_css_class(button, "known");
 
   WifiData *wd = (WifiData *)pb;
   if (ap == wd->active_ap) {
-    gtk_widget_add_css_class(label, "active");
+    gtk_widget_add_css_class(button, "active");
   }
 
-  return label;
+  if (secured || known) {
+    GtkWidget *revealer = gtk_revealer_new();
+    GtkWidget *entry_revealer_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
+    gtk_revealer_set_child(GTK_REVEALER(revealer), entry_revealer_box);
+
+    if (!known) { // Is secured and not known -> connect button with password
+      GtkWidget *button = gtk_button_new_with_label("Connect");
+      gtk_widget_set_cursor_from_name(button, "pointer");
+      gtk_box_append(GTK_BOX(entry_revealer_box), button);
+      GtkWidget *inner_revealer = gtk_revealer_new();
+      GtkWidget *inner_revealer_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 4);
+      GtkWidget *password_entry = gtk_password_entry_new();
+      gtk_box_append(GTK_BOX(entry_revealer_box), inner_revealer);
+      gtk_revealer_set_child(GTK_REVEALER(inner_revealer), inner_revealer_box);
+      gtk_password_entry_set_show_peek_icon(GTK_PASSWORD_ENTRY(password_entry),
+                                            TRUE);
+      gtk_box_append(GTK_BOX(inner_revealer_box), password_entry);
+
+      g_signal_connect(password_entry, "activate", G_CALLBACK(password_entered),
+                       ap);
+
+      g_signal_connect(button, "clicked",
+                       G_CALLBACK(open_revealer_on_button_click),
+                       inner_revealer);
+    } else { // Remove connection
+      GtkWidget *button = gtk_button_new_with_label("Forget");
+      gtk_widget_set_cursor_from_name(button, "pointer");
+      gtk_box_append(GTK_BOX(entry_revealer_box), button);
+
+      g_signal_connect_swapped(button, "clicked", G_CALLBACK(forget_ap), ssid);
+    }
+
+    gtk_box_append(GTK_BOX(box), revealer);
+
+    g_signal_connect(button, "clicked",
+                     G_CALLBACK(open_revealer_on_button_click), revealer);
+  }
+
+  return box;
 }
 
 static void on_aps_changed(NMDeviceWifi *device, GParamSpec *pspec,
@@ -177,8 +330,11 @@ GtkWidget *wifi_page(void) {
     return gtk_box_new(GTK_ORIENTATION_VERTICAL,
                        0); // Returns empty box instead of NULL
 
+  cached_connections = g_ptr_array_new_with_free_func(g_object_unref);
+
   PageButton *pb = create_page_button("Wifi", "network-wireless-symbolic");
   WifiData *wd = g_new0(WifiData, 1);
+  wd->client = client;
   pb->page_data = (void *)wd;
 
   // Header above entries
@@ -207,14 +363,25 @@ GtkWidget *wifi_page(void) {
   g_signal_connect(pb->toggle_btn, "clicked", G_CALLBACK(on_toggle_wifi_click),
                    client);
 
+  // Connection signals
+  // Should happen before all access points
+  g_signal_connect(client, "connection-added", G_CALLBACK(on_connection_added),
+                   NULL);
+  g_signal_connect(client, "connection-removed",
+                   G_CALLBACK(on_connection_removed), NULL);
+  get_all_connections(client);
+
+  // Enabled
   g_signal_connect(client, "notify::wireless-enabled",
                    G_CALLBACK(on_wireless_enabled_notify), pb);
   on_wireless_enabled_notify(client, NULL, pb);
 
+  // Active access point
   g_signal_connect(wifi_device, "notify::active-access-point",
                    G_CALLBACK(on_active_ap_changed), pb);
   on_active_ap_changed(wifi_device, NULL, pb);
 
+  // All access points
   g_signal_connect(wifi_device, "notify::access-points",
                    G_CALLBACK(on_aps_changed), pb);
   on_aps_changed(wifi_device, NULL, pb);

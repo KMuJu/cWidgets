@@ -26,6 +26,7 @@ typedef enum {
 GQuark wifi_util_error_quark(void);
 
 gchar *ap_get_ssid(NMAccessPoint *ap);
+gchar *wireless_setting_get_ssid(NMSettingWireless *setting);
 
 G_END_DECLS
 #endif // !NETOWRKING_H

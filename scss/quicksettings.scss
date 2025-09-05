@@ -97,6 +97,7 @@
     .entry {
       border-radius: 8px;
       padding: 4px;
+      padding-left: 8px;
 
       &:hover {
         background-color: $button-off;
@@ -107,6 +108,14 @@
 
         &:hover {
           background-color: $button;
+        }
+      }
+
+      &.known {
+        background-color: $button-off_2;
+
+        &:hover {
+          background-color: $button-off;
         }
       }
 
