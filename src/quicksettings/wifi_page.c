@@ -62,18 +62,6 @@ static gboolean ap_is_known(NMAccessPoint *ap) {
   return FALSE;
 }
 
-static NMDeviceWifi *get_wifi_device(void) {
-  NMDeviceWifi *wifi_device;
-  GError *error;
-  wifi_device = wifi_util_get_primary_wifi_device(&error);
-  if (!wifi_device) {
-    g_warning("Could not get the wifi_device from wifi_page.c: %s\n",
-              error->message);
-    return NULL;
-  }
-  return wifi_device;
-}
-
 static void launch_wifi_settings(void) {
   sh("env XDG_CURRENT_DESKTOP=gnome gnome-control-center wifi");
 }
@@ -322,14 +310,13 @@ static void on_active_ap_changed(NMDeviceWifi *device, GParamSpec *pspec,
 }
 
 GtkWidget *wifi_page(void) {
-  GError *error = NULL;
-  NMClient *client = wifi_util_get_client(&error);
+  NMClient *client = net_get_client();
   if (!client) {
-    g_message("Could not get nmclient in wifi page: %s", error->message);
+    g_message("Could not get nmclient in wifi page");
     return gtk_box_new(GTK_ORIENTATION_VERTICAL,
                        0); // Returns empty box instead of NULL
   }
-  NMDeviceWifi *wifi_device = get_wifi_device();
+  NMDeviceWifi *wifi_device = net_get_wifi_device();
   if (NULL == wifi_device)
     return gtk_box_new(GTK_ORIENTATION_VERTICAL,
                        0); // Returns empty box instead of NULL

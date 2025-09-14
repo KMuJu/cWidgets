@@ -7,53 +7,23 @@
 
 static NMClient *global_client = NULL;
 static NMDeviceWifi *cached_wifi = NULL;
-static GMutex init_mutex;
 
-GQuark wifi_util_error_quark(void) {
-  return g_quark_from_static_string("wifi-util-error-quark");
-}
+static void on_client_ready(GObject *source, GAsyncResult *res,
+                            gpointer user_data) {
+  GError *error = NULL;
+  NMClient *client;
 
-static gboolean ensure_client(GError **error) {
-  if (global_client)
-    return TRUE;
-  g_mutex_init(&init_mutex);
-
-  g_mutex_lock(&init_mutex);
-  if (!global_client) {
-    GError *local_error = NULL;
-    global_client = nm_client_new(NULL, &local_error);
-    if (!global_client) {
-      if (error)
-        *error = g_error_copy(local_error);
-      g_error_free(local_error);
-      g_mutex_unlock(&init_mutex);
-      return FALSE;
-    }
+  client = nm_client_new_finish(res, &error);
+  if (!client) {
+    g_printerr("Failed to create NMClient: %s\n", error->message);
+    g_error_free(error);
+    return;
   }
-  g_mutex_unlock(&init_mutex);
-  return TRUE;
-}
-
-NMClient *wifi_util_get_client(GError **error) {
-  if (!ensure_client(error))
-    return NULL;
-
-  return g_object_ref(global_client);
-}
-
-NMDeviceWifi *wifi_util_get_primary_wifi_device(GError **error) {
-  if (cached_wifi)
-    return g_object_ref(cached_wifi); /* return new ref */
-
-  if (!ensure_client(error))
-    return NULL;
-
+  global_client = g_object_ref(client);
   const GPtrArray *devices = nm_client_get_devices(global_client);
   if (!devices) {
-    if (error)
-      *error = g_error_new_literal(G_FILE_ERROR, G_FILE_ERROR_FAILED,
-                                   "Failed to get devices from NMClient");
-    return NULL;
+    g_printerr("Failed to get devices from client\n");
+    return;
   }
 
   for (guint i = 0; i < devices->len; i++) {
@@ -64,29 +34,24 @@ NMDeviceWifi *wifi_util_get_primary_wifi_device(GError **error) {
       if (NULL != cached_wifi)
         g_object_unref(cached_wifi);
       cached_wifi = g_object_ref(wifi);
-      return g_object_ref(cached_wifi);
+      break;
     }
   }
+  if (cached_wifi == NULL) {
+    g_printerr("Could not get a wifi device\n");
+    return;
+  }
 
-  if (error)
-    *error =
-        g_error_new_literal(WIFI_UTIL_ERROR, WIFI_UTIL_ERROR_NO_WIFI_DEVICE,
-                            "No Wi-Fi device found");
-  return NULL;
+  NetInitData *data = user_data;
+  data->run(data->ctx);
 }
 
-void wifi_util_refresh(void) {
-  g_mutex_lock(&init_mutex);
-  g_clear_object(&cached_wifi);
-  g_mutex_unlock(&init_mutex);
+void net_init(NetInitData *data) {
+  nm_client_new_async(NULL, on_client_ready, data);
 }
 
-void wifi_util_cleanup(void) {
-  g_mutex_lock(&init_mutex);
-  g_clear_object(&cached_wifi);
-  g_clear_object(&global_client);
-  g_mutex_unlock(&init_mutex);
-}
+NMClient *net_get_client(void) { return g_object_ref(global_client); }
+NMDeviceWifi *net_get_wifi_device(void) { return g_object_ref(cached_wifi); }
 
 gchar *ap_get_ssid(NMAccessPoint *ap) {
   if (!ap) {

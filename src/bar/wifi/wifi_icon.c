@@ -18,18 +18,6 @@ static const char ICON_OFFLINE[] = "network-wireless-offline-symbolic";
 static const char ICON_NO_ROUTE[] = "network-wireless-no-route-symbolic";
 static const char ICON_HOTSPOT[] = "network-wireless-hotspot-symbolic";
 
-static NMDeviceWifi *get_wifi_device(void) {
-  NMDeviceWifi *wifi_device;
-  GError *error;
-  wifi_device = wifi_util_get_primary_wifi_device(&error);
-  if (!wifi_device) {
-    g_warning("Could not get the wifi_device from wifi.c: %s\n",
-              error->message);
-    return NULL;
-  }
-  return wifi_device;
-}
-
 void active_ap_state_free(ActiveApState *s) {
   if (!s)
     return;
@@ -53,7 +41,7 @@ void add_wifi_widget(GtkWidget *box) {
   gtk_box_append(GTK_BOX(box), image);
   activeApState->image = image;
 
-  NMDeviceWifi *wifi_device = get_wifi_device();
+  NMDeviceWifi *wifi_device = net_get_wifi_device();
   if (NULL == wifi_device)
     return;
 

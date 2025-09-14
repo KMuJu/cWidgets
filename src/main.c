@@ -1,6 +1,8 @@
+#include "main.h"
 #include "bar/bar.h"
 #include "bluetooth/bt.h"
 #include "log.h"
+#include "networking.h"
 #include "quicksettings/quicksettings.h"
 #include <gio/gio.h>
 #include <glib-object.h>
@@ -9,15 +11,6 @@
 #include <unistd.h>
 #include <wp/core.h>
 #include <wp/wp.h>
-
-typedef struct {
-  GMainLoop *loop;
-  GDBusConnection *dbus_connection;
-  WpCore *core;
-  WpObjectManager *om;
-  guint pending_plugins;
-  gint exit_code;
-} MainContext;
 
 static void load_css(void) {
   GtkCssProvider *provider = gtk_css_provider_new();
@@ -129,12 +122,16 @@ int main(int argc, char *argv[]) {
   g_signal_connect_swapped(ctx.core, "disconnected",
                            (GCallback)g_main_loop_quit, ctx.loop);
   // Run after object manager is installed
-  g_signal_connect_swapped(om, "installed", (GCallback)run, &ctx);
+  NetInitData *data = g_new0(NetInitData, 1);
+  data->run = run;
+  data->ctx = &ctx;
+  g_signal_connect_swapped(om, "installed", (GCallback)net_init, data);
 
   g_main_loop_run(loop);
 
   LOG("Application exiting");
   close_logger();
+  g_free(data);
 
   return ctx.exit_code;
 }

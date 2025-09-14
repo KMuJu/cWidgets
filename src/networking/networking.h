@@ -2,28 +2,19 @@
 #define NETOWRKING_H
 
 #include "NetworkManager.h"
+#include "main.h"
 #include <gtk/gtk.h>
 
 G_BEGIN_DECLS
 
-/* Returns a referenced NMDeviceWifi* (caller must unref). On error or not found
- * returns NULL. */
-NMDeviceWifi *wifi_util_get_primary_wifi_device(GError **error);
-NMClient *wifi_util_get_client(GError **error);
+typedef struct {
+  void (*run)(MainContext *);
+  MainContext *ctx;
+} NetInitData;
 
-/* Force-refresh the cached device (e.g., if interfaces changed). */
-void wifi_util_refresh(void);
-
-/* Cleanup any cached objects; safe to call at program exit. */
-void wifi_util_cleanup(void);
-
-typedef enum {
-  WIFI_UTIL_ERROR_NO_WIFI_DEVICE,
-  WIFI_UTIL_ERROR_CLIENT_INIT_FAILED,
-} WifiUtilError;
-
-#define WIFI_UTIL_ERROR (wifi_util_error_quark())
-GQuark wifi_util_error_quark(void);
+void net_init(NetInitData *data);
+NMClient *net_get_client(void);
+NMDeviceWifi *net_get_wifi_device(void);
 
 gchar *ap_get_ssid(NMAccessPoint *ap);
 gchar *wireless_setting_get_ssid(NMSettingWireless *setting);
